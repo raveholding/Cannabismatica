@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://www.googleapis.com https://oauth2.googleapis.com; frame-src https://accounts.google.com; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="theme-color" content="#0a0e0a">
+<meta name="robots" content="noindex">
+<title>Cannabismatica I+D · Sistema VB ONG</title>
+<meta name="description" content="Demo interactiva del sistema de gestión de la Fundación Cannabismatica Investigación y Desarrollo: pacientes por DNI, Drive, REPROCANN, trazabilidad de dispensaciones y donaciones voluntarias.">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="stylesheet" href="css/app.css?v=28">
+<link rel="stylesheet" href="css/mods.css?v=28">
+<link rel="stylesheet" href="css/theme.css?v=28">
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+<div class="app" id="app">
+  <aside class="side">
+    <a class="brand" href="#/inicio" aria-label="Cannabismatica Investigación y Desarrollo, ir al inicio"><img src="assets/logo.png" alt="Cannabismatica Investigación y Desarrollo" width="723" height="220"></a>
+    <nav class="nav" id="nav" aria-label="Secciones"></nav>
+    <div class="foot">Fundación Cannabismatica I+D<br>Ley 27.350 · REPROCANN</div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <a class="logo-m" href="#/inicio" aria-label="Inicio"><img src="assets/icon-192.png" alt="Cannabismatica" width="34" height="34"></a>
+      <div class="search" role="search">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <label class="sr" for="q">Buscar paciente por nombre, legajo o documento</label>
+        <input id="q" type="search" inputmode="search" autocomplete="off" placeholder="Buscar paciente (nombre, legajo, documento)…" aria-controls="sugg" aria-expanded="false">
+        <div class="sugg" id="sugg" hidden></div>
+      </div>
+      <span class="grow"></span>
+      <span id="userChip" class="userchip" hidden></span><label class="sr" for="rolSel">Rol de la persona que usa el sistema (simulación)</label><select id="rolSel" class="rolsel" title="Rol (simulación)"></select>
+      <span class="pill-demo" id="pillEj" title="Hay datos de ejemplo cargados. Podés borrarlos en Configuración → Empezar de cero." hidden>Datos de ejemplo</span>
+    </header>
+    <main class="content" id="main" tabindex="-1"></main>
+    <footer class="credits">
+      Desarrollado por <b>Rave Holding</b> ·
+      <a href="https://wa.me/5493875143900?text=Hola%20Rave%20Holding%2C%20consulto%20por%20la%20demo%20del%20Sistema%20ONG%20de%20Cannabismatica" target="_blank" rel="noopener noreferrer">WhatsApp +54 9 387 514-3900</a> ·
+      <a href="mailto:raveholding@gmail.com">raveholding@gmail.com</a>
+    </footer>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<div id="toastRoot" aria-live="polite" role="status"></div>
+<div id="printArea" aria-hidden="true"></div>
+<noscript><style>html:not(.rdy) .app{visibility:visible}</style><p style="padding:20px;color:#fff">Esta demo necesita JavaScript activado.</p></noscript>
+<script src="js/qrcode.js?v=28"></script>
+<script src="js/core.js?v=28"></script>
+<script src="js/ext.js?v=28"></script>
+<script src="js/ui.js?v=28"></script>
+<script src="js/ident.js?v=28"></script>
+<script src="js/app.js?v=28"></script>
+<script src="js/m-caja.js?v=28"></script>
+<script src="js/m-gestion.js?v=28"></script>
+<script src="js/m-menu.js?v=28"></script>
+<script src="js/m-hc.js?v=28"></script>
+<script src="js/m-sistema.js?v=28"></script>
+<script src="js/m-cultivo.js?v=28"></script>
+<script src="js/m-drive.js?v=28"></script>
+<script src="js/boot.js?v=28"></script>
+</body>
+</html>
