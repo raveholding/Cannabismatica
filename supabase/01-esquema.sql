@@ -229,6 +229,10 @@ begin
   return uid;
 end $$;
 
+create or replace function public.perms_defecto() returns jsonb language sql immutable set search_path = public as $$
+  select '{"supervisor":{"pacientes":"edit","dispensaciones":"edit","aportes":"edit","reprocann":"edit","trazabilidad":"edit","cultivo":"edit","dashboard":"edit","caja":"admin","cierre":"admin","cerradas":"edit","inventario":"edit","fidelizacion":"edit","personal":"edit","tareas":"edit","menu":"edit","nube":"ver","perifericos":"edit","importexport":"oper","integraciones":"ver","usuarios":"ver","auditoria":"ver","ajustes":"ver"},"mostrador":{"pacientes":"oper","dispensaciones":"oper","aportes":"oper","reprocann":"ver","trazabilidad":"ver","caja":"oper","inventario":"ver","fidelizacion":"oper","personal":"oper","tareas":"oper","dashboard":"ver","perifericos":"oper","cultivo":"ver","cierre":"","cerradas":"","menu":"","nube":"","importexport":"","integraciones":"","usuarios":"","auditoria":"","ajustes":""},"operador":{"pacientes":"oper","inventario":"ver","tareas":"oper","fidelizacion":"ver","reprocann":"ver","personal":"oper","cultivo":"oper","dispensaciones":"","aportes":"","trazabilidad":"","dashboard":"","caja":"","cierre":"","cerradas":"","menu":"","nube":"","perifericos":"","importexport":"","integraciones":"","usuarios":"","auditoria":"","ajustes":""}}'::jsonb;
+$$;
+
 create or replace function public.bootstrap_estado() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.tenants);
@@ -250,7 +254,7 @@ begin
   if p_correo !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'correo_invalido'; end if;
   if length(trim(coalesce(p_nombre, ''))) < 3 then raise exception 'nombre_invalido'; end if;
   if not public.clave_ok(p_clave) then raise exception 'clave_debil'; end if;
-  insert into public.tenants (nombre) values (left(coalesce(nullif(trim(p_ong), ''), 'ONG'), 120)) returning id into tid;
+  insert into public.tenants (nombre, perms) values (left(coalesce(nullif(trim(p_ong), ''), 'ONG'), 120), public.perms_defecto()) returning id into tid;
   uid := public._crear_auth_user(p_correo, p_clave);
   insert into public.miembros (user_id, tenant_id, nombre, correo, rol, activo, cambiar)
   values (uid, tid, left(trim(p_nombre), 80), lower(trim(p_correo)), 'admin', true, false);
@@ -518,6 +522,8 @@ begin
   if tid is null or (public.nivel_de(auth.uid(), 'menu') < 2 and public.nivel_de(auth.uid(), 'pacientes') < 2) then raise exception 'sin_permiso'; end if;
   update public.solicitudes_publicas set estado = 'procesada', payload = '{}'::jsonb where id = p_id and tenant_id = tid;
 end $$;
+
+update public.tenants set perms = public.perms_defecto() where perms = '{}'::jsonb;
 
 -- ---------- permisos de ejecución (nada por defecto) ----------
 revoke all on all tables in schema public from anon, authenticated;
