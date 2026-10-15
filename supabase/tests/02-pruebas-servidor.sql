@@ -117,10 +117,12 @@ begin
   execute 'set local role authenticated';
   begin perform public.usuario_actualizar(a, 'Admin Prueba', 'operador', true); perform public._chk('no se puede dejar sin administrador', false); exception when others then perform public._chk('no se puede dejar sin administrador', sqlerrm like '%ultimo_admin%', sqlerrm); end;
   perform public.usuario_reset_clave(mos, 'Temporal2026a');
-  perform public._chk('reset de clave exige cambio', (select cambiar from public.miembros where user_id = mos));
   perform public.usuario_actualizar(sup, 'Supervisora Prueba', 'supervisor', false);
-  perform public._chk('baja de usuario', not (select activo from public.miembros where user_id = sup));
   perform public.menu_publicar('{"nombre":"Menú de prueba"}'::jsonb);
+  execute 'reset role';
+  perform public._chk('reset de clave exige cambio', (select cambiar from public.miembros where user_id = mos));
+  perform public._chk('baja de usuario', not (select activo from public.miembros where user_id = sup));
+  perform public._chk('baja bloquea el ingreso (banned_until)', (select banned_until is not null from auth.users where id = sup));
 
   -- ===== anónimo =====
   execute 'reset role';
