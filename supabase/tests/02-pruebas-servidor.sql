@@ -86,7 +86,7 @@ begin
   perform public._chk('mostrador: no toca cultivo', not (r->2->>'ok')::boolean and r->2->>'err' like '%sin_permiso%', r->2->>'err');
   perform public._chk('mostrador: puede auditar', (r->3->>'ok')::boolean, r->3->>'err');
   select count(*) into n from public.registros where col = 'cultivos';
-  perform public._chk('mostrador: no lee cultivos (RLS)', n = 0, n::text);
+  perform public._chk('mostrador: lee cultivos (solo ver, RLS)', n = 1, n::text);
   select count(*) into n from public.registros where col = 'pacientes';
   perform public._chk('mostrador: lee pacientes', n >= 2, n::text);
   select count(*) into n from public.registros where col = 'audit';
