@@ -525,6 +525,20 @@ end $$;
 
 update public.tenants set perms = public.perms_defecto() where perms = '{}'::jsonb;
 
+-- soporte de Rave: restablece la clave de un usuario (se corre a mano en el SQL Editor; NO es ejecutable desde la API)
+create or replace function public.soporte_restablecer_clave(p_correo text, p_clave text) returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare m public.miembros;
+begin
+  select * into m from public.miembros where lower(correo) = lower(trim(p_correo));
+  if not found then raise exception 'no_existe'; end if;
+  if not public.clave_ok(p_clave) then raise exception 'clave_debil'; end if;
+  update auth.users set encrypted_password = extensions.crypt(p_clave, extensions.gen_salt('bf', 10)), updated_at = now() where id = m.user_id;
+  update public.miembros set cambiar = true where user_id = m.user_id;
+  perform public._cortar_sesiones(m.user_id);
+  perform public._audit_srv(m.tenant_id, m.user_id, 'Soporte', 'Clave restablecida por Rave Holding (verificación de identidad previa)');
+end $$;
+
 -- ---------- permisos de ejecución (nada por defecto) ----------
 revoke all on all tables in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
