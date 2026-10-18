@@ -413,7 +413,7 @@ begin
         end if;
         raise exception 'solo_agregar';
       end if;
-      if old.col is not null and cdef.congela_cerradas and old.data->>'estado' = 'cerrada' then
+      if old.col is not null and cdef.congela_cerradas and not old.borrado and old.data->>'estado' = 'cerrada' then
         if (old.data - 'notas') <> (d - 'notas') or jsonb_array_length(coalesce(d->'notas', '[]'::jsonb)) < jsonb_array_length(coalesce(old.data->'notas', '[]'::jsonb)) then
           raise exception 'caja_cerrada';
         end if;
@@ -446,7 +446,9 @@ language plpgsql security definer set search_path = public as $$
 declare tid uuid := public.tenant_de(auth.uid());
 begin
   if tid is null or public.nivel_de(auth.uid(), 'ajustes') < 4 then raise exception 'sin_permiso'; end if;
-  delete from public.registros where tenant_id = tid and col in ('pacientes','lotes','movs','disp','aportes','comps','seg','cajas','cmovs','fichas','sellos','cupones','cuponUsos','membresias','insumos','imovs','cultivos','cultReg','m_altas','m_solic','m_turnos','m_hcs','tareas','staff');
+  -- baja lógica: los demás equipos reciben el borrado en su próxima sincronización
+  update public.registros set borrado = true, v = v + 1, seq = nextval('public.registros_seq'), updated_at = now(), updated_by = auth.uid()
+   where tenant_id = tid and not borrado and col in ('pacientes','lotes','movs','disp','aportes','comps','seg','cajas','cmovs','fichas','sellos','cupones','cuponUsos','membresias','insumos','imovs','cultivos','cultReg','m_altas','m_solic','m_turnos','m_hcs','tareas','staff');
   delete from public.solicitudes_publicas where tenant_id = tid;
   perform public._audit_srv(tid, auth.uid(), 'Empezar de cero', 'Se retiraron los datos operativos de la nube');
 end $$;
