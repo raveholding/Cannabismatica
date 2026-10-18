@@ -198,7 +198,7 @@
 
     return '<section class="card hero"><h1>Buscar paciente</h1><p style="margin:0;color:var(--mu)">Cada paciente tiene un <b>legajo único</b> que une la ficha, los Drive, el REPROCANN y la trazabilidad. Buscá por nombre, legajo, DNI, CUIT o CUIL.</p>' +
       '<form data-form="buscar" autocomplete="off"><label class="sr" for="hq">Nombre, legajo, DNI, CUIT o CUIL del paciente</label><input id="hq" name="q" class="in" placeholder="Nombre, legajo o documento, p. ej. 99000001" aria-describedby="hqh"><button class="btn pri" type="submit">' + CM.icon('search') + 'Buscar</button><button class="btn" type="button" data-act="nuevo-paciente">' + CM.icon('plus') + 'Nuevo paciente</button></form>' +
-      '<p id="hqh" class="hint" style="margin:10px 0 0">Datos de ejemplo: probá con 99000001, 99000002 o 99000004, o escribí un nombre. El documento es opcional: un paciente puede no tenerlo.</p></section>' +
+      '<p id="hqh" class="hint" style="margin:10px 0 0">Buscá por nombre, legajo o documento. El documento es opcional: un paciente puede no tenerlo.</p></section>' +
       '<div class="grid g4" style="margin-top:14px">' +
       '<div class="card kpi"><div class="l">Pacientes en el sistema</div><div class="v">' + pacs.length + '</div><div class="s">' + pacs.filter(function (p) { return p.historiaCompleta; }).length + ' con historia clínica completa</div></div>' +
       '<div class="card kpi"><div class="l">Dispensaciones del mes</div><div class="v">' + dm.length + '</div><div class="s">' + esc(totTxt) + '</div></div>' +
@@ -659,7 +659,7 @@
       title: 'Registrar dispensación', wide: true,
       body: '<form id="fDS" data-form="dispensar" class="f" autocomplete="off" novalidate>' +
         (p ? '<input type="hidden" name="dni" value="' + esc(dni) + '"><div class="card flat"><b>' + esc(p.nombre) + '</b> · ' + esc(CM.idTxt(p)) + ' ' + repPill(CM.estadoRep(p.reprocann)) + '</div>' :
-          fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" id="dsDni" name="dni" autocomplete="off" placeholder="Ej.: María, L-251015-… o 99000001"><span id="dsPac" class="hint" aria-live="polite"></span>')) +
+          fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" id="dsDni" name="dni" autocomplete="off" placeholder="Ej.: nombre, legajo (L-…) o documento"><span id="dsPac" class="hint" aria-live="polite"></span>')) +
         '<div id="dsAvisos" aria-live="polite"></div>' +
         fl('Preparado y lote *', '<select class="in" id="dsLote" name="lote"><option value="">Elegí un preparado…</option>' + grupos + '</select>') +
         '<div class="f f2">' + flr('Cantidad entregada * <span id="dsUni" style="color:var(--ac)"></span>', '<input class="in num" name="cant" inputmode="decimal" placeholder="0"><span id="dsDisp" class="hint"></span>') +

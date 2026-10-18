@@ -119,7 +119,7 @@
 
 
   /* ---------- ingreso del equipo (demo): clave con sal + SHA-256, sesión en la pestaña, bloqueo por intentos ---------- */
-  CM.CLAVE_DEMO = 'Demo2026!';
+  CM.CLAVE_DEMO = (function () { var a = new Uint8Array(12); try { window.crypto.getRandomValues(a); } catch (e) { for (var i = 0; i < 12; i++) a[i] = Math.floor(Math.random() * 256); } return 'x' + Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('') + '9'; })(); /* sólo modo local de desarrollo: aleatoria, nunca se muestra */
   CM.hashPw = function (salt, pw) { return CM.sha256('cm-pw|' + salt + '|' + pw); };
   CM.setPw = function (u, pw, cambiar) { u.salt = CM.sha256('s|' + u.id + '|' + Math.random() + Date.now()).slice(0, 16); u.pw = CM.hashPw(u.salt, pw); u.cambiar = !!cambiar; };
   CM.claveValida = function (pw) { return typeof pw === 'string' && pw.length >= 8 && /[a-zA-Z]/.test(pw) && /\d/.test(pw); };
