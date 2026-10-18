@@ -562,10 +562,10 @@
   }
 
   function aplicarMe(me) {
-    var s = N.ses, antes = s.me ? s.me.rol : null;
+    var s = N.ses, antes = s.me ? s.me.rol : null, pAntes = JSON.stringify(CM.db.perms || null);
     s.me = { nombre: me.nombre, correo: me.correo, rol: me.rol, cambiar: !!me.cambiar, tenant: me.tenant && me.tenant.nombre };
     CM.db.cfg.rol = me.rol; CM.db.cfg.operador = me.nombre; CM.db.perms = me.perms || CM.db.perms;
-    return antes !== null && antes !== me.rol;
+    return (antes !== null && antes !== me.rol) || pAntes !== JSON.stringify(CM.db.perms || null);
   }
   N.aplicarMe = aplicarMe;
   function refreshMe() {
