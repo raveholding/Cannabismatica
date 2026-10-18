@@ -1,6 +1,6 @@
 # Sistema VB ONG — prompt maestro para ONG (base reutilizable)
 
-Versión: 2.0 (v1.0 + carga del menú público, créditos, Planilla de cultivo, Google Drive con nombres únicos y modo "sistema completo") · Rave Holding · Deriva de Sistema VB (RAVE CORE) y de la demo validada de Fundación Cannabismatica I+D.
+Versión: 3.0 (v2.0 + nube real con Supabase, ingreso con Auth, seguridad y pruebas; ver sección 12) · Rave Holding · Deriva de Sistema VB (RAVE CORE) y de la demo validada de Fundación Cannabismatica I+D.
 Uso: este documento se agrega **sobre** el prompt maestro "Sistema VB" (secciones B a P). Donde haya diferencias, manda este documento para ONG. Antes de cambiar un repositorio, inspeccionar el código real. Todo lo descripto es requisito, no funcionalidad ya hecha.
 La estética NO forma parte de este prompt: cada ONG define logo, colores y tipografía en su ficha (sección 1).
 
