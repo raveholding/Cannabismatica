@@ -72,3 +72,11 @@ docs/Sistema-VB-ONG.md              prompt maestro para ONG
 Para reinstalar en otro proyecto de Supabase: crear el proyecto, pegar `01-esquema.sql` en el SQL Editor, correr `90-reiniciar-para-entrega.sql` (muestra el código de configuración), poner la URL y la clave publicable en `js/config.js`, desactivar "Allow new users to sign up" y fijar la clave mínima en 8 con letras y números.
 
 Desarrollado por **VINCULAR BUSINESS** · «Tu idea, en buenas manos.» · WhatsApp (387) 4484132
+
+## Legajo completo (carpeta + hoja + formularios)
+- Cada paciente nuevo (formulario público, alta del club, historia clínica o ingreso breve) nace con un **legajo único**.
+- Con el **Drive de la ONG conectado** (Client ID de Google cargado y un administrador que autoriza el acceso), el sistema crea solo la carpeta `Legajos/{legajo}_{DNI}` y la fila del legajo en la hoja **«Legajos · {ONG}»** (se crea sola, una fila por legajo, sin duplicar).
+- Google obliga a que una persona de la ONG autorice el acceso desde el navegador: si nadie lo hizo, los legajos quedan **pendientes** y se procesan todos con un botón en *Pacientes*.
+- La hoja guarda sólo identificación, estado de los formularios («Completo / Sin completar», con lo que falta) y el enlace a la carpeta. **No se copian datos clínicos.**
+- En *Pacientes* se puede filtrar por «Formularios sin completar» y «Sin carpeta en Drive»; cada ficha muestra el estado de sus formularios.
+- Pendiente: creación 100 % sin intervención (sin que nadie abra el sistema) requiere una cuenta de servicio de Google y un proceso en el servidor.
