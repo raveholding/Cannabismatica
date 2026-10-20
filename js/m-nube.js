@@ -73,7 +73,7 @@
   var ERR = {
     sin_permiso: 'No tenés permiso para esa acción.', correo_existente: 'Ya existe un usuario con ese correo.', clave_debil: 'La clave necesita al menos 8 caracteres, con letras y números.',
     correo_invalido: 'Revisá el correo.', nombre_invalido: 'Escribí el nombre (mínimo 3 letras).', rol_invalido: 'Rol inválido.', ultimo_admin: 'Tiene que quedar al menos un administrador activo.',
-    codigo_invalido: 'El código de configuración no es correcto.', demasiados_intentos: 'Demasiados intentos. Esperá una hora o pedí un código nuevo a Rave Holding.', ya_configurado: 'El sistema ya está configurado.',
+    codigo_invalido: 'El código de configuración no es correcto.', demasiados_intentos: 'Demasiados intentos. Esperá una hora o pedí un código nuevo a VINCULAR BUSINESS.', ya_configurado: 'El sistema ya está configurado.',
     limite: 'Se enviaron demasiadas solicitudes. Probá de nuevo en un rato.', no_existe: 'No se encontró.', stock_negativo: 'No había stock suficiente en el servidor.', caja_cerrada: 'La caja ya estaba cerrada.',
     solo_agregar: 'Ese registro no se puede modificar (sólo agregar).', no_se_borra: 'Ese registro no se puede borrar.', no_disponible: 'El servicio no está disponible.'
   };

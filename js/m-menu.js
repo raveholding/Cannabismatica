@@ -144,7 +144,7 @@
     });
     if (cfg.bloques.compartir) h += '<section class="pub-s pub-share"><div><h2>' + t.compartir + '</h2><div class="row"><button type="button" class="btn" ' + a + '="pub-share">' + CM.icon('share') + t.compartir + '</button><button type="button" class="btn" ' + a + '="pub-copiar" data-v="' + esc(urlPub()) + '">' + CM.icon('copy') + t.copiado.replace('Enlace copiado', 'Copiar enlace').replace('Link copied', 'Copy link') + '</button></div></div><div class="qrbox" role="img" aria-label="QR">' + CM.qrSvg(urlPub()) + '</div></section>';
     h += '<footer class="pub-f">' + (leg.length ? '<div class="pub-leg"><b>' + t.legal + '</b>' + leg.map(function (f) { return '<p>' + esc(ph(cfg, f)) + '</p>'; }).join('') + '</div>' : '') +
-      '<p class="pub-dev">' + t.dev + ' <b>Rave Holding</b><br><a href="https://wa.me/5493875143900?text=' + encodeURIComponent('Hola Rave Holding, te escribo desde el menú de ' + cfg.nombre) + '" target="_blank" rel="noopener noreferrer">WhatsApp +54 9 387 514-3900</a> · <a href="mailto:raveholding@gmail.com">raveholding@gmail.com</a></p></footer>' +
+      '<p class="pub-dev">' + t.dev + ' <b>VINCULAR BUSINESS</b><br><i>Tu idea, en buenas manos.</i></p>' + CM.devBanner('te escribo desde el menú de ' + cfg.nombre) + '</footer>' +
       (live ? '<a class="pub-wa" href="' + esc(wa) + '" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">' + CM.icon('chat') + '</a>' : '') +
       (ids.length && live ? '<button type="button" class="pub-bar" ' + a + '="pub-ir" data-v="consulta">' + t.mi + ' (' + ids.reduce(function (s, k) { return s + CM.pub.cart[k]; }, 0) + ')</button>' : '') +
       (cfg.bloques.volver && live ? '<button type="button" class="pub-up" id="pubUp" data-act="pub-up" aria-label="' + t.arriba + '" hidden>' + CM.icon('up') + '</button>' : '') + '</div>';
@@ -160,7 +160,7 @@
       fl('Clave', '<span class="pwrow"><input class="in" type="password" name="clave" autocomplete="current-password"><button type="button" class="btn sm" data-act="ver-clave" aria-pressed="false">Mostrar</button></span>') +
       '<p class="err" role="alert" data-err></p><button class="btn pri" type="submit">Ingresar</button><div class="row" style="justify-content:space-between"><button type="button" class="btn sm" data-act="olvide">Olvidé mi contraseña</button><a class="btn sm" href="#/m">Volver al menú</a></div></form>' +
       '<div class="note warn" style="margin-top:14px">Sistema sin conexión a la nube configurada (modo local de desarrollo). Completá <code>js/config.js</code> para ingresar.</div>' +
-      '<p class="hint" style="margin-top:12px">Desarrollado por <b>Rave Holding</b> · <a href="https://wa.me/5493875143900?text=' + encodeURIComponent('Hola Rave Holding, necesito ayuda para ingresar al sistema de ' + cfg.nombre) + '" target="_blank" rel="noopener noreferrer">Necesito ayuda</a></p></div></div>';
+      '<p class="hint" style="margin-top:12px">Desarrollado por <b>VINCULAR BUSINESS</b> · <i>Tu idea, en buenas manos.</i></p>' + CM.devBanner('necesito ayuda para ingresar al sistema de ' + cfg.nombre) + '</div></div>';
   };
   CM.forms.acceso = function (f) {
     var r = CM.login(f.elements.correo.value, f.elements.clave.value);
@@ -172,7 +172,7 @@
   CM.acts['ver-clave'] = function (t) { var i = t.parentNode.querySelector('input'), v = i.type === 'password'; i.type = v ? 'text' : 'password'; t.textContent = v ? 'Ocultar' : 'Mostrar'; t.setAttribute('aria-pressed', String(v)); };
   CM.acts.olvide = function () {
     var cfg = CM.db.menu.pub;
-    CM.modal.open({ title: 'Olvidé mi contraseña', body: '<p>Pedile a la <b>administración de la fundación</b> que te genere una clave temporal desde <i>Usuarios y permisos</i>. Al ingresar vas a elegir una clave propia.</p><p>Si la administración tampoco puede ingresar, escribile a Rave Holding.</p>', footer: '<button class="btn" data-act="modal-close">Cerrar</button><a class="btn pri" href="https://wa.me/5493875143900?text=' + encodeURIComponent('Hola Rave Holding, olvidé la clave del sistema de ' + cfg.nombre) + '" target="_blank" rel="noopener noreferrer">Escribir a Rave Holding</a>' });
+    CM.modal.open({ title: 'Olvidé mi contraseña', body: '<p>Pedile a la <b>administración de la fundación</b> que te genere una clave temporal desde <i>Usuarios y permisos</i>. Al ingresar vas a elegir una clave propia.</p><p>Si la administración tampoco puede ingresar, escribile a VINCULAR BUSINESS.</p>', footer: '<button class="btn" data-act="modal-close">Cerrar</button><a class="btn pri" href="https://wa.me/5493874484132?text=' + encodeURIComponent('Hola VINCULAR BUSINESS, olvidé la clave del sistema de ' + cfg.nombre) + '" target="_blank" rel="noopener noreferrer">Escribir a VINCULAR BUSINESS</a>' });
   };
   CM.acts.salir = function () { CM.logout(); CM.db.cfg.rol = 'admin'; g.location.hash = '#/m'; render(); CM.toast('Cerraste la sesión.'); };
   CM.modalClave = function (forzada) {

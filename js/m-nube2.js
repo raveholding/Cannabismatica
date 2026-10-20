@@ -136,7 +136,7 @@
   };
   CM.forms['setup'] = function (f) {
     var e = f.elements, cod = e.cod.value.replace(/\s+/g, '').toUpperCase(), nom = e.nombre.value.trim(), cor = e.correo.value.trim().toLowerCase(), c1 = e.c1.value, c2 = e.c2.value;
-    if (cod.length < 8) return fail(f, 'cod', 'Escribí el código de configuración que te dio Rave Holding.');
+    if (cod.length < 8) return fail(f, 'cod', 'Escribí el código de configuración que te dio VINCULAR BUSINESS.');
     if (nom.length < 3) return fail(f, 'nombre', 'Escribí tu nombre y apellido.');
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cor)) return fail(f, 'correo', 'Revisá el correo.');
     if (!claveOk(c1)) return fail(f, 'c1', 'La clave necesita al menos 8 caracteres, con letras y números.');
@@ -155,9 +155,9 @@
     var cfg = CM.db.menu.pub, ya = CM.usuarioActual && CM.usuarioActual();
     if (ya) return '<div class="pubpage"><div class="card login"><h1>Ya ingresaste</h1><p>Sesión de <b>' + esc(ya.nombre) + '</b> (' + esc(CM.ROLES[ya.rol]) + ').</p><div class="row"><a class="btn pri" href="#/inicio">Ir al sistema</a><button class="btn" data-act="salir">Salir</button></div></div></div>';
     var logo = '<div style="text-align:center"><img src="assets/logo.png" alt="Cannabismatica" style="max-width:220px;height:auto"></div>';
-    var pie = '<p class="hint" style="margin-top:12px">Desarrollado por <b>Rave Holding</b> · <a href="https://wa.me/5493875143900?text=' + encodeURIComponent('Hola Rave Holding, necesito ayuda para ingresar al sistema de Cannabismatica') + '" target="_blank" rel="noopener noreferrer">Necesito ayuda</a></p>';
+    var pie = '<p class="hint" style="margin-top:12px">Desarrollado por <b>VINCULAR BUSINESS</b> · <a href="https://wa.me/5493874484132?text=' + encodeURIComponent('Hola VINCULAR BUSINESS, necesito ayuda para ingresar al sistema de Cannabismatica') + '" target="_blank" rel="noopener noreferrer">Necesito ayuda</a></p>';
     if (N.needSetup) {
-      return '<div class="pubpage"><div class="card login">' + logo + '<h1>Primera configuración</h1><p class="hint">Es la primera vez que se usa el sistema. Con el <b>código de configuración</b> que te dio Rave Holding creás la cuenta de administración. El código sirve una sola vez.</p>' +
+      return '<div class="pubpage"><div class="card login">' + logo + '<h1>Primera configuración</h1><p class="hint">Es la primera vez que se usa el sistema. Con el <b>código de configuración</b> que te dio VINCULAR BUSINESS creás la cuenta de administración. El código sirve una sola vez.</p>' +
         '<form data-form="setup" class="f" autocomplete="off" novalidate>' + fl('Código de configuración *', '<input class="in" name="cod" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX">') +
         fl('Nombre de la organización', '<input class="in" name="ong" value="Fundación Cannabismatica Investigación y Desarrollo">') + fl('Tu nombre y apellido *', '<input class="in" name="nombre" autocomplete="name">') +
         fl('Tu correo (es tu usuario) *', '<input class="in" type="email" name="correo" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false">') +
@@ -325,7 +325,7 @@
       (rech.length ? '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Cambios que el servidor no aceptó</h2><button class="btn sm" data-act="nube-rech-ok">Entendido, limpiar la lista</button></div><p class="hint">Pasa, por ejemplo, si dos equipos vendieron el mismo stock a la vez o si cambió tu permiso. El sistema ya volvió a mostrar la versión del servidor.</p><div class="tw"><table><thead><tr><th>Cuándo</th><th>Qué</th><th>Motivo</th></tr></thead><tbody>' + rech.slice(0, 20).map(function (r) { return '<tr><td>' + esc(hhmm(r.ts)) + '</td><td>' + esc(r.col + ' · ' + r.id) + '</td><td>' + esc(r.txt) + '</td></tr>'; }).join('') + '</tbody></table></div></section>' : '') +
       '<div class="grid g2" style="margin-top:14px"><section class="card"><h2>Cómo funciona</h2><ul class="tl">' + ['Cada persona ingresa con su correo y su clave; los permisos los controla el servidor.', 'Los cambios se guardan primero en este equipo (cifrados) y se suben solos cada pocos segundos.', 'Sin internet se puede seguir trabajando; al volver la conexión se sincroniza. Pasados ' + I.OFFLINE_MAX_DIAS + ' días sin conexión hay que volver a ingresar en línea.', 'El stock y las cajas cerradas los vigila el servidor: no puede quedar stock negativo y un cierre sellado no se modifica.', 'Si alguien da de baja a una persona, pierde el acceso en todos los equipos.'].map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></section>' +
       '<section class="card"><h2>Respaldo cifrado</h2><p style="color:var(--mu)">Descargá una copia cifrada de los datos de este equipo con una contraseña de respaldo que elegís vos (distinta de tu clave de ingreso). Sin esa contraseña el archivo no se puede abrir.</p><div class="row">' + (esAdmin ? '<button class="btn pri" data-act="bk-cifrado">' + CM.icon('dl') + 'Descargar respaldo cifrado</button><button class="btn" data-act="bk-verificar">' + CM.icon('shield') + 'Verificar un respaldo</button>' : '<span class="pill p-mu">Sólo la administración</span>') + '</div>' +
-      '<div class="note info" style="margin-top:12px">Con la nube activa los respaldos <b>no se restauran desde esta pantalla</b> (se pisarían datos de otros equipos). Si hace falta recuperar información, Rave Holding restaura desde las copias del servidor <b>[VERIFICAR el plan de Supabase contratado]</b>.</div></section></div>';
+      '<div class="note info" style="margin-top:12px">Con la nube activa los respaldos <b>no se restauran desde esta pantalla</b> (se pisarían datos de otros equipos). Si hace falta recuperar información, VINCULAR BUSINESS restaura desde las copias del servidor <b>[VERIFICAR el plan de Supabase contratado]</b>.</div></section></div>';
   };
   CM.acts['nube-sync'] = function () { if (!N.online) { CM.toast('Sin conexión: se va a sincronizar solo cuando vuelva.', true); } N.sincronizar().then(function () { render(); }); };
   CM.acts['nube-rech-ok'] = function () { CM.db._s.rech = []; N.dirty = true; I.guardarLocal(); render(); };
@@ -382,7 +382,7 @@
   };
   CM.acts['aud-alterar'] = function () {}; CM.acts['aud-reparar'] = function () {};
   CM.acts['reset-demo'] = function () {}; CM.acts['reset-ok'] = function () {};
-  CM.acts['imp-deshacer'] = function () { CM.toast('Con la nube activa no se puede deshacer una importación desde acá: pedile ayuda a Rave Holding.', true); };
+  CM.acts['imp-deshacer'] = function () { CM.toast('Con la nube activa no se puede deshacer una importación desde acá: pedile ayuda a VINCULAR BUSINESS.', true); };
 
   var COLS_VACIAR = ['pacientes', 'lotes', 'movs', 'disp', 'aportes', 'comps', 'seg', 'cajas', 'cmovs', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'm_altas', 'm_solic', 'm_turnos', 'm_hcs', 'tareas', 'staff'];
   CM.acts['vaciar'] = function () {

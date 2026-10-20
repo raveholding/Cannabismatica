@@ -40,7 +40,7 @@
       '<div class="card kpi"><div class="l">Cambios locales registrados</div><div class="v">' + db.audit.length + '</div><div class="s">Se subirían al conectar (cola local)</div></div>' +
       '<div class="card kpi"><div class="l">Modo de trabajo</div><div class="v" style="font-size:1.2rem;padding:6px 0"><span class="pill p-ok">Sin conexión</span></div><div class="s">Datos guardados en este navegador</div></div></div>' +
       '<div class="grid g2" style="margin-top:14px"><section class="card"><h2>Qué se necesita para activarla (sistema real)</h2><ul class="tl">' +
-      ['Proyecto en la nube (un proyecto para todas las organizaciones, aisladas por servidor)', 'Esquema de base de datos con permisos por organización (RLS) y pruebas cruzadas entre dos organizaciones', 'Ingreso con correo y contraseña; recuperación de clave con código', 'Respaldos automáticos del proveedor y restauración probada', 'Sincronización entre equipos cada pocos segundos, con cola si no hay internet'].map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="hint">Esto lo configura Rave Holding con la organización; los secretos nunca viajan en el navegador.</p></section>' +
+      ['Proyecto en la nube (un proyecto para todas las organizaciones, aisladas por servidor)', 'Esquema de base de datos con permisos por organización (RLS) y pruebas cruzadas entre dos organizaciones', 'Ingreso con correo y contraseña; recuperación de clave con código', 'Respaldos automáticos del proveedor y restauración probada', 'Sincronización entre equipos cada pocos segundos, con cola si no hay internet'].map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="hint">Esto lo configura VINCULAR BUSINESS con la organización; los secretos nunca viajan en el navegador.</p></section>' +
       '<section class="card"><h2>Respaldo local (funciona hoy)</h2><p style="color:var(--mu)">Descargá una copia de todos los datos de esta versión y restaurala cuando quieras. En el sistema real el respaldo va cifrado.</p><div class="row"><button class="btn pri" data-act="bk-bajar">' + CM.icon('dl') + 'Descargar respaldo (JSON)</button><label class="btn" for="bkFile" style="cursor:pointer">' + CM.icon('undo') + 'Restaurar desde un respaldo</label><input type="file" id="bkFile" accept=".json,application/json" class="sr"></div>' +
       '<div class="note info" style="margin-top:12px">Este respaldo del sistema no está cifrado. Contiene datos ficticios.</div></section></div>';
   };
@@ -114,7 +114,7 @@
     } else {
       L.push(ctr('TICKET DE PRUEBA', c), rule, 'Ancho: ' + w + ' mm (' + c + ' caracteres)', 'Acentos y enie: a e i o u n', 'Importe de ejemplo: ' + money(1234567), rule, ctr('Si lo ves completo, ancho OK', c));
     }
-    L.push(rule, ctr('Desarrollado por Rave Holding', c), ctr('+54 9 387 514-3900', c));
+    L.push(rule, ctr('Desarrollado por VINCULAR BUSINESS', c), ctr('(387) 4484132', c));
     return L.join('\n');
   }
   VIEWS.perifericos = function () {
@@ -440,7 +440,7 @@
      INTEGRACIONES
      =================================================================== */
   var INTEG = [
-    ['Google Drive (carpetas del paciente)', 'manual', 'Hoy: enlaces Drive 1 y Drive 2 cargados a mano en cada ficha.', 'Para sincronizar archivos: cuenta Google de la fundación, proyecto con la API habilitada, pantalla de consentimiento y permisos mínimos (drive.file). Los tokens quedan cifrados en el servidor.'],
+    ['Google Drive (carpetas del paciente)', 'manual', 'Cada paciente tiene una carpeta por legajo: se crea con un clic desde la ficha (Drive de la ONG) o se vincula a mano.', 'Para sincronizar archivos: cuenta Google de la fundación, proyecto con la API habilitada, pantalla de consentimiento y permisos mínimos (drive.file). Los tokens quedan cifrados en el servidor.'],
     ['Formularios de Google (historia y seguimiento)', 'manual', 'Activo: el sistema abre los formularios y los muestra en el QR de la etiqueta.', 'La carga automática de respuestas a la ficha requiere conectar la hoja de respuestas.'],
     ['Mercado Pago (donaciones por QR o link)', 'pend', 'Pendiente de configuración.', 'Cuenta de la fundación, credenciales por canal seguro, webhooks con firma y pruebas en sandbox. Una donación sólo se acredita con confirmación verificada del proveedor.'],
     ['WhatsApp', 'manual', 'Activo: abre WhatsApp con un mensaje listo (envío manual). No es un envío automático.', 'El envío automático usa la API oficial de WhatsApp Business: cuenta, plantillas aprobadas, costos [VERIFICAR].'],
@@ -452,7 +452,7 @@
   VIEWS.integraciones = function () {
     return pageH('Integraciones', 'Conexiones opcionales con otros servicios. Ninguna está conectada en esta versión salvo los enlaces manuales; cada tarjeta dice la verdad sobre su estado.') +
       '<div class="grid g2">' + INTEG.map(function (i) { return '<section class="card"><div class="row sp"><h3>' + esc(i[0]) + '</h3>' + estPill(i[1]) + '</div><p style="margin:8px 0">' + esc(i[2]) + '</p><details><summary>Qué hace falta</summary><p class="hint" style="margin-top:8px">' + esc(i[3]) + '</p></details></section>'; }).join('') + '</div>' +
-      '<section class="card" style="margin-top:14px"><h2>Probar un enlace manual</h2><p style="color:var(--mu)">WhatsApp se abre con un mensaje listo; una persona lo revisa y lo envía.</p><a class="btn" href="https://wa.me/5493875143900?text=' + encodeURIComponent('Hola Rave Holding, consulto por la integración del sistema de Cannabismatica') + '" target="_blank" rel="noopener noreferrer">Abrir WhatsApp de Rave Holding</a></section>';
+      '<section class="card" style="margin-top:14px"><h2>Probar un enlace manual</h2><p style="color:var(--mu)">WhatsApp se abre con un mensaje listo; una persona lo revisa y lo envía.</p><a class="btn" href="https://wa.me/5493874484132?text=' + encodeURIComponent('Hola VINCULAR BUSINESS, consulto por la integración del sistema de Cannabismatica') + '" target="_blank" rel="noopener noreferrer">Abrir WhatsApp de VINCULAR BUSINESS</a></section>';
   };
 
   /* ===================================================================

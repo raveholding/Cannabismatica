@@ -198,7 +198,7 @@
 
     return '<section class="card hero"><h1>Buscar paciente</h1><p style="margin:0;color:var(--mu)">Cada paciente tiene un <b>legajo único</b> que une la ficha, los Drive, el REPROCANN y la trazabilidad. Buscá por nombre, legajo, DNI, CUIT o CUIL.</p>' +
       '<form data-form="buscar" autocomplete="off"><label class="sr" for="hq">Nombre, legajo, DNI, CUIT o CUIL del paciente</label><input id="hq" name="q" class="in" placeholder="Nombre, legajo o documento, p. ej. 99000001" aria-describedby="hqh"><button class="btn pri" type="submit">' + CM.icon('search') + 'Buscar</button><button class="btn" type="button" data-act="nuevo-paciente">' + CM.icon('plus') + 'Nuevo paciente</button></form>' +
-      '<p id="hqh" class="hint" style="margin:10px 0 0">Buscá por nombre, legajo o documento. El documento es opcional: un paciente puede no tenerlo.</p></section>' +
+      '<p id="hqh" class="hint" style="margin:10px 0 0">Datos de ejemplo: probá con 99000001, 99000002 o 99000004, o escribí un nombre. El documento es opcional: un paciente puede no tenerlo.</p></section>' +
       '<div class="grid g4" style="margin-top:14px">' +
       '<div class="card kpi"><div class="l">Pacientes en el sistema</div><div class="v">' + pacs.length + '</div><div class="s">' + pacs.filter(function (p) { return p.historiaCompleta; }).length + ' con historia clínica completa</div></div>' +
       '<div class="card kpi"><div class="l">Dispensaciones del mes</div><div class="v">' + dm.length + '</div><div class="s">' + esc(totTxt) + '</div></div>' +
@@ -233,20 +233,38 @@
   };
 
   /* ---------- ficha del paciente ---------- */
-  function driveCard(p, w) {
-    var u = p['drive' + w];
-    var tit = w === 1 ? 'Drive 1 · Ficha de datos y documentación' : 'Drive 2 · Historial clínico';
-    var sub = w === 1 ? 'Datos personales y documentación médica del paciente.' : 'Historia clínica y evolución del paciente.';
-    var h = '<div class="card flat drive"><div class="t">' + CM.icon('drive') + '<div><h3 style="margin:0">' + esc(tit) + '</h3><span class="hint">' + esc(sub) + '</span></div></div>';
-    if (u) {
-      h += '<a class="btn pri" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir en Google Drive</a><div class="u">' + esc(u) + '</div>' +
-        '<div class="row"><button class="btn sm" data-act="copiar" data-v="' + esc(u) + '">' + CM.icon('copy') + 'Copiar enlace</button><button class="btn sm" data-act="drive-edit" data-dni="' + esc(p.dni) + '" data-w="' + w + '">Cambiar enlace</button></div>';
-      if (u === 'https://drive.google.com/drive/my-drive') h += '<span class="hint">Enlace de ejemplo: en el sistema con la nube configurada cada paciente tiene su propia carpeta.</span>';
-    } else {
-      h += '<div class="note warn">Sin carpeta vinculada todavía. Nombre único sugerido para la carpeta: <b>' + esc(p.driveCarpeta || p.leg || '') + '</b> (lleva el legajo, así nunca choca con otra).</div><button class="btn" data-act="drive-edit" data-dni="' + esc(p.dni) + '" data-w="' + w + '">' + CM.icon('plus') + 'Vincular carpeta de Drive</button>';
-    }
-    return h + '</div>';
+  /* Una sola carpeta por legajo (documentos, imágenes, notas, recetas). Los enlaces cargados antes en «Drive 1» se conservan;
+     un «Drive 2» viejo, si existe, se muestra como carpeta anterior de historial clínico. */
+  CM.nombreCarpetaLegajo = function (p) { return (p.leg || 'SIN-LEGAJO') + '_' + (CM.soloDigitos(p.dni).length >= 7 && CM.soloDigitos(p.dni).length <= 11 ? CM.soloDigitos(p.dni) : 'SD'); };
+  function enlaceFila(u, w, p, rotulo) {
+    return '<div style="margin-top:8px">' + (rotulo ? '<small class="hint">' + esc(rotulo) + '</small><br>' : '') +
+      '<a class="btn pri" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir carpeta en Google Drive</a>' +
+      '<div class="row" style="margin-top:6px"><button class="btn sm" data-act="copiar" data-v="' + esc(u) + '">' + CM.icon('copy') + 'Copiar enlace</button><button class="btn sm" data-act="drive-edit" data-dni="' + esc(p.dni) + '" data-w="' + w + '">Cambiar enlace</button></div></div>';
   }
+  function carpetaLegajo(p) {
+    var u1 = p.drive1, u2 = p.drive2, conf = !!(CM.db.ong && CM.db.ong.driveClientId), oper = CM.can('pacientes', 'oper');
+    var h = '<section class="card drive" style="margin-top:14px"><div class="t">' + CM.icon('drive') + '<div><h3 style="margin:0">Carpeta del legajo · ' + esc(p.leg || '—') + '</h3><span class="hint">Documentos, imágenes, notas, recetas y estudios de este paciente. Una sola carpeta por legajo.</span></div></div>';
+    if (u1 || u2) {
+      if (u1) h += enlaceFila(u1, 1, p, '');
+      if (u2) h += enlaceFila(u2, 2, p, 'Carpeta de historial clínico (vinculada antes)');
+      if (u1 === 'https://drive.google.com/drive/my-drive') h += '<p class="hint">Enlace de ejemplo: en el sistema real cada paciente tiene su propia carpeta.</p>';
+    } else {
+      h += '<div class="note warn">Este paciente todavía no tiene carpeta. Nombre que se le asigna: <b>' + esc(CM.nombreCarpetaLegajo(p)) + '</b> (lleva el legajo, así nunca choca con otra) dentro de la carpeta «Legajos» de la ONG.</div>' +
+        (oper ? '<div class="row"><button class="btn pri" data-act="drive-crear" data-dni="' + esc(p.dni) + '">' + CM.icon('plus') + 'Crear carpeta del legajo en Drive</button><button class="btn" data-act="drive-edit" data-dni="' + esc(p.dni) + '" data-w="1">Vincular una carpeta existente</button></div>' +
+          (conf ? '' : '<p class="hint">Pendiente de configuración: un administrador tiene que conectar el Drive de la ONG (Trazabilidad → Planilla de cultivo → Client ID de Google). Mientras tanto se puede vincular una carpeta a mano.</p>') : '');
+    }
+    return h + '</section>';
+  }
+  CM.acts['drive-crear'] = function (t) {
+    var p = CM.paciente(t.getAttribute('data-dni')); if (!p || !CM.need('pacientes', 'oper')) return;
+    if (!(CM.db.ong && CM.db.ong.driveClientId)) { CM.toast('Pendiente de configuración: falta conectar el Drive de la ONG (Client ID de Google).', true); return; }
+    if (p.drive1) { CM.toast('Este paciente ya tiene carpeta.', true); return; }
+    CM.toast('Creando la carpeta en Drive…');
+    CM.driveCarpetaPaciente(p).then(function (cf) {
+      p.drive1 = 'https://drive.google.com/drive/folders/' + cf.id;
+      CM.audit('Drive: carpeta de legajo creada', 'Legajo ' + CM.legDe(p.dni)); CM.save(); render(); CM.toast('Carpeta creada y vinculada al legajo.');
+    }).catch(function (e) { CM.toast((e && e.message) || 'No se pudo crear la carpeta en Drive.', true); });
+  };
   VIEWS.paciente = function (r) {
     var dni = CM.soloDigitos(r.a), p = CM.paciente(dni);
     if (!p) {
@@ -268,7 +286,7 @@
       '<button class="btn" data-act="seguimiento" data-dni="' + esc(dni) + '">' + CM.icon('clip') + 'Seguimiento médico</button>' +
       '<button class="btn" data-act="historia" data-dni="' + esc(dni) + '">' + CM.icon('doc') + (p.historiaCompleta ? 'Editar historia clínica' : 'Completar historia clínica') + '</button></div></section>';
 
-    var drives = '<div class="grid g2" style="margin-top:14px">' + driveCard(p, 1) + driveCard(p, 2) + '</div>';
+    var drives = carpetaLegajo(p);
 
     var datos = '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Datos y historia clínica</h2><a class="btn sm" href="' + esc(CM.db.ong.urlHistoria) + '" target="_blank" rel="noopener noreferrer">Abrir formulario de Historia (Google Forms)</a></div><div class="kv">' +
       kv('Nombre y apellido', p.nombre) + kv('Fecha de nacimiento', p.nac ? CM.fmtFecha(p.nac) + (edad != null ? ' · ' + edad + ' años' : '') : '') + kv('Teléfono', p.tel ? p.tel : '') +
@@ -338,7 +356,7 @@
       '<section class="card"><div class="row" style="margin-bottom:12px"><label class="sr" for="dsMes">Mes</label><select id="dsMes" class="in" style="max-width:200px">' + opt('todos', 'Todos los meses', mes === 'todos') + ml.map(function (m) { return opt(m, m.slice(5) + '/' + m.slice(0, 4), m === mes); }).join('') + '</select>' +
       '<label class="sr" for="dsFlt">Tipo de preparado</label><select id="dsFlt" class="in" style="max-width:260px">' + opt('', 'Todos los preparados', !flt) + Object.keys(CM.PRODUCTOS).map(function (k) { return opt(k, CM.PRODUCTOS[k].n, flt === k); }).join('') + '</select></div>' +
       (arr.length ? '<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Paciente</th><th>Preparado</th><th class="n">Cantidad</th><th>Lote</th><th>Entregó</th><th></th></tr></thead><tbody>' + arr.map(function (d) {
-        return '<tr' + (d.anulada ? ' class="anulada"' : '') + '><td>' + esc(d.id) + '</td><td>' + CM.fmtFecha(d.fecha) + '</td><td><a href="#/paciente/' + esc(d.dni) + '">' + esc(nombreCorto(nombreDe(d.dni))) + '</a><br><small class="hint">DNI ' + esc(d.dni) + '</small></td><td>' + esc(d.nombre) + '</td><td class="n">' + esc(cantTxt(d.cant, d.unidad)) + '</td><td>' + esc(d.lote) + '</td><td>' + esc(d.user) + '</td><td>' +
+        return '<tr' + (d.anulada ? ' class="anulada"' : '') + '><td>' + esc(d.id) + '</td><td>' + CM.fmtFecha(d.fecha) + '</td><td><a href="#/paciente/' + esc(d.dni) + '">' + esc(nombreCorto(nombreDe(d.dni))) + '</a><br><small class="hint">DNI ' + esc(d.dni) + '</small></td><td>' + esc(d.nombre) + '</td><td class="n">' + esc(cantTxt(d.cant, d.unidad)) + '</td><td>' + esc(d.lote) + (d.cu ? '<br><small class="hint">Ciclo ' + esc(d.cu) + '</small>' : '') + '</td><td>' + esc(d.user) + '</td><td>' +
           (d.anulada ? '<span class="pill p-bad" title="' + esc(d.anulada.motivo) + '">Anulada</span>' : '<div class="row"><button class="btn sm" data-act="etiqueta" data-id="' + esc(d.id) + '">' + CM.icon('qr') + 'Etiqueta</button><button class="btn sm bad" data-act="anular-disp" data-id="' + esc(d.id) + '">Anular</button></div>') + '</td></tr>';
       }).join('') + '</tbody></table></div>' : tablaVacia('No hay dispensaciones en este período.')) + '</section>';
   };
@@ -647,6 +665,13 @@
 
   /* ---------- dispensar ---------- */
   CM.acts.dispensar = function (t) { modalDispensar(t.getAttribute('data-dni') || ''); };
+  /* Origen de cultivo (4.28.1): cada dispensación referencia el ciclo del que sale; sin ciclo válido se rechaza */
+  function ciclosActivos() { return (CM.db.cultivos || []).filter(function (c) { return c.estado === 'activo'; }); }
+  function origenCultivoHtml() {
+    var cs = ciclosActivos();
+    if (!cs.length) return '<div class="note warn">No hay ciclos de cultivo activos: la dispensación se registra <b>sin origen de cultivo</b>. Creá un ciclo en Trazabilidad → Planilla de cultivo.</div>';
+    return fl('Origen de cultivo (ciclo) *', '<select class="in" name="cu"><option value="">Elegí el ciclo de origen…</option>' + cs.map(function (c) { return opt(c.id, c.id + ' · ' + c.nombre + (c.variedad ? ' · ' + c.variedad : '')); }).join('') + '</select>');
+  }
   function modalDispensar(dni) {
     var p = dni ? CM.paciente(dni) : null;
     var lotes = CM.db.lotes, grupos = '';
@@ -659,9 +684,10 @@
       title: 'Registrar dispensación', wide: true,
       body: '<form id="fDS" data-form="dispensar" class="f" autocomplete="off" novalidate>' +
         (p ? '<input type="hidden" name="dni" value="' + esc(dni) + '"><div class="card flat"><b>' + esc(p.nombre) + '</b> · ' + esc(CM.idTxt(p)) + ' ' + repPill(CM.estadoRep(p.reprocann)) + '</div>' :
-          fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" id="dsDni" name="dni" autocomplete="off" placeholder="Ej.: nombre, legajo (L-…) o documento"><span id="dsPac" class="hint" aria-live="polite"></span>')) +
+          fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" id="dsDni" name="dni" autocomplete="off" placeholder="Ej.: María, L-251015-… o 99000001"><span id="dsPac" class="hint" aria-live="polite"></span>')) +
         '<div id="dsAvisos" aria-live="polite"></div>' +
         fl('Preparado y lote *', '<select class="in" id="dsLote" name="lote"><option value="">Elegí un preparado…</option>' + grupos + '</select>') +
+        origenCultivoHtml() +
         '<div class="f f2">' + flr('Cantidad entregada * <span id="dsUni" style="color:var(--ac)"></span>', '<input class="in num" name="cant" inputmode="decimal" placeholder="0"><span id="dsDisp" class="hint"></span>') +
         fl('Indicación / posología', '<input class="in" name="indic" placeholder="Según indicación médica">') + '</div>' +
         flr('Observación<span id="dsObsReq"></span>', '<textarea class="in" name="obs" style="min-height:64px" placeholder="Obligatoria si el REPROCANN está en trámite, sin cargar o se supera el tope"></textarea>') +
@@ -693,6 +719,11 @@
     if (cant > stock) return fail(f, 'cant', 'No alcanza el stock del lote: quedan ' + cantTxt(stock, l.unidad) + '.');
     var reglas = CM.reglasDispensar(p);
     if (reglas.bloquea) return fail(f, '', 'No se puede dispensar: ' + reglas.msgs.filter(function (m) { return m.t === 'bad'; }).map(function (m) { return m.m; }).join(' '));
+    var cu = e.cu ? e.cu.value : '';
+    if (ciclosActivos().length) {
+      var cic = CM.cultivo ? CM.cultivo(cu) : null;
+      if (!cic || cic.estado !== 'activo') return fail(f, 'cu', 'Elegí el origen de cultivo (ciclo activo): toda dispensación referencia su ciclo.');
+    }
     var obs = e.obs.value.trim(), pideObs = reglas.pideObs, tope = CM.db.cfg.topeMensualG;
     if (l.unidad === 'g' && tope && CM.gramosMes(dni, CM.mesActual()) + cant > tope) {
       pideObs = true;
@@ -703,7 +734,7 @@
     if (e.aporte.value.trim()) { aporte = CM.parseMonto(e.aporte.value); if (isNaN(aporte)) return fail(f, 'aporte', 'La donación no es un importe válido (ej.: 15.000 o 15000,50).'); }
     f.dataset.busy = '1';
     var h = CM.hoy(), id = CM.nextId('D');
-    CM.db.disp.push({ id: id, fecha: h, ts: new Date().toISOString(), dni: dni, lote: l.id, prod: l.prod, nombre: l.nombre, quim: l.quim, unidad: l.unidad, cant: cant, indic: e.indic.value.trim(), obs: obs, user: CM.db.cfg.operador, aporte: '', anulada: null });
+    CM.db.disp.push({ id: id, fecha: h, ts: new Date().toISOString(), dni: dni, lote: l.id, prod: l.prod, nombre: l.nombre, quim: l.quim, unidad: l.unidad, cant: cant, indic: e.indic.value.trim(), obs: obs, user: CM.db.cfg.operador, aporte: '', anulada: null, cu: cu || '', tipoSeg: 'dispensación' });
     CM.addMov(l.id, 'dispensacion', -cant, id, '');
     var ap = null, comp = null;
     if (aporte > 0) {
@@ -712,7 +743,7 @@
       CM.audit('Donación voluntaria', ap.id + ' · Legajo ' + CM.legDe(dni) + ' · ' + CM.fmtMoney(aporte));
       if (e.fc.checked) { comp = CM.emitirFacturaC(ap); CM.audit('Factura C simulada', comp.pv + '-' + comp.nro + ' · ' + ap.id); }
     }
-    CM.audit('Dispensación', id + ' · Legajo ' + CM.legDe(dni) + ' · ' + l.nombre + ' · ' + cantTxt(cant, l.unidad) + (obs ? ' · obs: ' + obs : ''));
+    CM.audit('Dispensación', id + ' · Legajo ' + CM.legDe(dni) + (cu ? ' · ciclo ' + cu : '') + ' · ' + l.nombre + ' · ' + cantTxt(cant, l.unidad) + (obs ? ' · obs: ' + obs : ''));
     CM.save(); CM.modal.close(true); render();
     exitoDispensacion(id, comp);
   };

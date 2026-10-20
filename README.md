@@ -71,4 +71,4 @@ docs/Sistema-VB-ONG.md              prompt maestro para ONG
 
 Para reinstalar en otro proyecto de Supabase: crear el proyecto, pegar `01-esquema.sql` en el SQL Editor, correr `90-reiniciar-para-entrega.sql` (muestra el código de configuración), poner la URL y la clave publicable en `js/config.js`, desactivar "Allow new users to sign up" y fijar la clave mínima en 8 con letras y números.
 
-Desarrollado por **Rave Holding** · WhatsApp +54 9 387 514-3900 · raveholding@gmail.com
+Desarrollado por **VINCULAR BUSINESS** · «Tu idea, en buenas manos.» · WhatsApp (387) 4484132
