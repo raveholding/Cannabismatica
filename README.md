@@ -5,6 +5,10 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-10-22)
+- **Ficha del paciente: una sola carpeta por legajo** (se abre directo) y **Documentos y escaneos**: subir PDF o fotos, o escanear con la cámara del celular. Cada archivo va a la carpeta del legajo con nombre único (legajo, tipo, fecha, versión y huella SHA-256), nunca reemplaza uno anterior y queda registrado quién lo subió y cuándo. El registro se sincroniza entre equipos (colección `legDocs`).
+- **Google Drive**: por ahora la conexión es manual (Client ID OAuth de la ONG, el permiso dura la sesión del equipo). Si Drive no está conectado, el archivo queda guardado **en ese equipo** como «pendiente de subir» y se sube solo al conectar. Pendiente: cuenta de servicio de la ONG para que las carpetas y subidas sean automáticas.
+
 ## Cómo se usa (primera vez)
 
 1. Abrí el sitio → **Acceso del equipo** (o tocá 5 veces el logo, o `#/acceso`).

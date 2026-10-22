@@ -263,7 +263,7 @@
     };
     return acc;
   }
-  var ARR = { lotes: 0, movs: 'ts', disp: 'ts', aportes: 'ts', comps: 0, seg: 0, audit: 'ts-desc', rubros: 0, cajas: 'apTs', cmovs: 'ts', staff: 0, fichas: 'ts', tareas: 0, org: 0, sellos: 'ts', cupones: 0, cuponUsos: 'ts', planes: 0, membresias: 0, irubros: 0, insumos: 0, imovs: 'ts', cultivos: 0, cultReg: 'ts' };
+  var ARR = { lotes: 0, movs: 'ts', disp: 'ts', aportes: 'ts', comps: 0, seg: 0, audit: 'ts-desc', rubros: 0, cajas: 'apTs', cmovs: 'ts', staff: 0, fichas: 'ts', tareas: 0, org: 0, sellos: 'ts', cupones: 0, cuponUsos: 'ts', planes: 0, membresias: 0, irubros: 0, insumos: 0, imovs: 'ts', cultivos: 0, cultReg: 'ts', legDocs: 'ts' };
   Object.keys(ARR).forEach(function (col) {
     COLS[col] = arrAcc(col, function () { return CM.db[col]; }, function (v) { CM.db[col] = v; }, ARR[col]);
   });

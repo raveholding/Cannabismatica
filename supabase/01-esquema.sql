@@ -132,6 +132,7 @@ insert into public.colecciones (col, lectura, escritura, solo_agregar, congela_c
  ('imovs',      array['inventario','dashboard'], array['inventario'], true,false,true),
  ('cultivos',   array['cultivo','trazabilidad','dashboard'], array['cultivo'], false,false,true),
  ('cultReg',    array['cultivo','trazabilidad','dashboard'], array['cultivo'], false,false,true),
+ ('legDocs',    array['pacientes'], array['pacientes'], false,false,true),
  ('audit',      array['auditoria'], array['*'], true,false,true),
  ('m_altas',    array['menu','fidelizacion'], array['menu','fidelizacion'], false,false,true),
  ('m_solic',    array['menu'], array['menu'], false,false,true),
