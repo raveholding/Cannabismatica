@@ -66,7 +66,7 @@
     else m = '<circle cx="140" cy="62" r="34" fill="none" stroke="' + a + '" stroke-width="3"/><path d="M140 84 C112 66 118 44 134 46 C138 46 140 50 140 52 C140 50 142 46 146 46 C162 44 168 66 140 84 Z" fill="none" stroke="' + a + '" stroke-width="3" stroke-linejoin="round"/>';
     return '<svg viewBox="0 0 280 124" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><linearGradient id="ga' + n + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + b + '"/><stop offset="1" stop-color="#0b120b"/></linearGradient></defs><rect width="280" height="124" fill="url(#ga' + n + ')"/><circle cx="' + (30 + (n * 37) % 220) + '" cy="24" r="40" fill="' + a + '" opacity=".08"/><circle cx="' + (230 - (n * 23) % 160) + '" cy="110" r="52" fill="' + a + '" opacity=".07"/>' + m + '</svg>';
   }
-  var NAVL = { es: { hc: 'Historia Clínica · Solicitud Reprocann', catalogo: 'Servicios', agenda: 'Agenda', pasos: 'Cómo funciona', faq: 'Preguntas', club: 'Club', ubic: 'Contacto' }, en: { hc: 'Medical record · REPROCANN request', catalogo: 'Services', agenda: 'Schedule', pasos: 'How it works', faq: 'FAQ', club: 'Club', ubic: 'Contact' } };
+  var NAVL = { es: { hc: 'Historia Clínica · Solicitud Reprocann', catalogo: 'Servicios', agenda: 'Agenda', pasos: 'Cómo funciona', faq: 'Preguntas', club: 'Club', ubic: 'Contacto', legal: 'Legal' }, en: { hc: 'Medical record · REPROCANN request', catalogo: 'Services', agenda: 'Schedule', pasos: 'How it works', faq: 'FAQ', club: 'Club', ubic: 'Contact', legal: 'Legal' } };
   var TX = {
     es: { ver: 'Ver detalle', buscar: 'Buscar un servicio, taller o curso', todos: 'Todos', sinRes: 'No encontramos nada con esa búsqueda.', agenda: 'Próximas actividades', agendaD: 'Reservá tu lugar agregando la actividad a tu consulta. Es una solicitud: confirmamos el cupo por WhatsApp.', cupo: 'cupos', pres: 'Presencial', virt: 'Virtual', pasos: 'Cómo funciona', faq: 'Preguntas frecuentes', incluye: 'Qué incluye', dur: 'Duración', cerrar: 'Cerrar', consultarWa: 'Consultar por WhatsApp', contacto: 'Contacto', hoy: 'Hoy', wa: 'WhatsApp', mail: 'Correo', hecho: 'Listo', inscr: 'Quiero inscribirme', chips: 'Ley 27.350 · REPROCANN' },
     en: { ver: 'View details', buscar: 'Search a service, workshop or course', todos: 'All', sinRes: 'We found nothing for that search.', agenda: 'Upcoming activities', agendaD: 'Reserve your place by adding the activity to your inquiry. It is a request: we confirm availability on WhatsApp.', cupo: 'seats', pres: 'In person', virt: 'Online', pasos: 'How it works', faq: 'Frequently asked questions', incluye: 'What is included', dur: 'Duration', cerrar: 'Close', consultarWa: 'Ask on WhatsApp', contacto: 'Contact', hoy: 'Today', wa: 'WhatsApp', mail: 'Email', hecho: 'Done', inscr: 'I want to sign up', chips: 'Law 27,350 · REPROCANN' }
@@ -126,20 +126,16 @@
           '<form ' + (live ? 'data-form="pub-club"' : '') + ' class="f" autocomplete="off" novalidate><div class="f f2"><label class="fl"><span>' + t.nom + ' *</span><input class="in" name="nom" autocomplete="given-name"></label><label class="fl"><span>' + t.ape + ' *</span><input class="in" name="ape" autocomplete="family-name"></label></div>' +
           '<div class="f f2"><label class="fl"><span>' + t.nac + ' *</span><input class="in" type="date" name="nac" max="' + CM.hoy() + '"></label><label class="fl"><span>' + t.wa + ' *</span><input class="in" name="wa" inputmode="tel" placeholder="3875000000"></label></div>' +
           '<label class="chk"><input type="checkbox" name="c1"><span>' + t.c1 + '</span></label><label class="chk"><input type="checkbox" name="c2"><span>' + t.c2 + '</span></label><label class="chk"><input type="checkbox" name="c3"><span>' + t.c3 + '</span></label>' +
-          '<p class="err" role="alert" data-err></p><button class="btn pri" type="submit">' + t.unirme + '</button></form></section>';
+          '<p class="err" role="alert" data-err></p><button class="btn pri" type="submit">' + t.unirme + '</button></form>' + (CM.pubExt ? '<h3 style="margin:18px 0 8px">' + esc(CM.pubExt.clubTitulo(L)) + '</h3>' + CM.pubExt.clubCard(cfg, L) : '') + '</section>';
       } else if (b === 'wifi' && cfg.bloques.wifi && cfg.wifi.ssid) {
         var vig = cfg.wifi.vigencia === 'siempre' || ab !== false;
         h += '<section class="pub-s" id="pub-wifi" aria-labelledby="pubWifi"><h2 id="pubWifi">' + CM.icon('wifi') + t.wifi + '</h2>' + (vig && cfg.wifi.clave ? '<div class="kv"><div><small>' + t.red + '</small><b>' + esc(cfg.wifi.ssid) + '</b></div><div><small>' + t.clave + '</small><b>' + esc(cfg.wifi.clave) + '</b></div></div><div class="row" style="margin-top:10px"><button type="button" class="btn sm" ' + a + '="pub-copiar" data-v="' + esc(cfg.wifi.clave) + '">' + CM.icon('copy') + t.copiar + '</button></div>' : '<p class="hint">' + t.wifiOff + '</p>') + '</section>';
       } else if (b === 'ubic' && cfg.bloques.ubic) {
-        var qs = encodeURIComponent(cfg.ubic.consulta || (cfg.direccion + ' ' + cfg.localidad)), rs = cfg.ubic.resena ? CM.urlHttps(cfg.ubic.resena) : null;
-        h += '<section class="pub-s" id="pub-ubic" aria-labelledby="pubUb"><h2 id="pubUb">' + CM.icon('pin') + t.donde + '</h2><div class="pub-contact"><div><p><b>' + esc(cfg.direccion) + (cfg.localidad ? ', ' + esc(cfg.localidad) : '') + '</b></p>' + (cfg.mostrarHorario ? '<p class="pub-hrs">' + esc(hrsTxt(cfg)) + '</p>' : '') + '<p><a href="' + esc(wa) + '" target="_blank" rel="noopener noreferrer">' + x.wa + ' ' + esc(telFmt(cfg.wa)) + '</a>' + (cfg.email ? ' · <a href="mailto:' + esc(cfg.email) + '">' + esc(cfg.email) + '</a>' : '') + '</p>' +
-          '<div class="row"><a class="btn" href="https://www.google.com/maps/search/?api=1&query=' + qs + '" target="_blank" rel="noopener noreferrer">' + t.llegar + '</a>' + (rs ? '<a class="btn" href="' + esc(rs) + '" target="_blank" rel="noopener noreferrer">' + t.resena + '</a>' : '') + '</div></div></div></section>';
+        h += CM.pubExt.info(cfg, L, wa, cfg.mostrarHorario ? hrsTxt(cfg) : '', telFmt(cfg.wa));
       } else if (b === 'redes' && cfg.bloques.redes) {
-        var rr = cfg.redes.filter(function (r) { return r.activa; }).map(function (r) {
-          var u = r.url === 'wa' ? 'https://wa.me/' + cfg.wa : urlRed(r.label, r.url);
-          return u ? '<a class="btn sm" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(r.label) + '</a>' : '';
-        }).join('');
-        if (rr) h += '<section class="pub-s" id="pub-redes" aria-labelledby="pubRs"><h2 id="pubRs">' + t.redes + '</h2><div class="row">' + rr + '</div></section>';
+        h += CM.pubExt.redes(cfg, L, urlRed);
+      } else if (b === 'legal' && cfg.bloques.legal) {
+        h += CM.pubExt.legal(cfg, L, a);
       }
     });
     if (cfg.bloques.compartir) h += '<section class="pub-s pub-share"><div><h2>' + t.compartir + '</h2><div class="row"><button type="button" class="btn" ' + a + '="pub-share">' + CM.icon('share') + t.compartir + '</button><button type="button" class="btn" ' + a + '="pub-copiar" data-v="' + esc(urlPub()) + '">' + CM.icon('copy') + t.copiado.replace('Enlace copiado', 'Copiar enlace').replace('Link copied', 'Copy link') + '</button></div></div><div class="qrbox" role="img" aria-label="QR">' + CM.qrSvg(urlPub()) + '</div></section>';
@@ -286,7 +282,7 @@
      ADMINISTRACIÓN DEL MENÚ PÚBLICO
      =================================================================== */
   CM.mp = { tab: 'ident' };
-  var TABS = [['ident', 'Identidad y horarios'], ['frases', 'Frases y leyendas'], ['cat', 'Catálogo'], ['cont', 'Portada y contenidos'], ['bloques', 'Bloques y orden'], ['sol', 'Historia clínica y turnos'], ['club', 'Club y altas'], ['wifi', 'Wi-Fi'], ['red', 'Ubicación y redes'], ['acc', 'Compartir y acceso'], ['pub', 'Vista previa y publicación']];
+  var TABS = [['ident', 'Identidad y horarios'], ['frases', 'Frases y leyendas'], ['cat', 'Catálogo'], ['cont', 'Portada y contenidos'], ['bloques', 'Bloques y orden'], ['sol', 'Historia clínica y turnos'], ['club', 'Club y altas'], ['wifi', 'Wi-Fi'], ['red', 'Ubicación y redes'], ['legal', 'Información legal'], ['acc', 'Compartir y acceso'], ['pub', 'Vista previa y publicación']];
   var DIAS = [[1, 'Lunes'], [2, 'Martes'], [3, 'Miércoles'], [4, 'Jueves'], [5, 'Viernes'], [6, 'Sábado'], [0, 'Domingo']];
   function sinPublicar() { var m = CM.db.menu; return JSON.stringify(m.draft) !== JSON.stringify(m.pub); }
   function dr() { return CM.db.menu.draft; }
@@ -331,7 +327,7 @@
         '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Agenda de talleres y cursos</h2><button class="btn pri sm" data-act="ag-nueva">' + CM.icon('plus') + 'Nueva fecha</button></div><div class="tw"><table><thead><tr><th>Fecha</th><th>Actividad</th><th>Modalidad y lugar</th><th class="n">Cupos</th><th>Estado</th><th></th></tr></thead><tbody>' +
         (d.agenda.length ? d.agenda.slice().sort(function (u, v) { return u.fecha.localeCompare(v.fecha); }).map(function (g1) { var it = d.items.filter(function (y) { return y.id === g1.item; })[0]; return '<tr><td>' + esc(CM.fmtFecha(g1.fecha)) + ' ' + esc(g1.hora) + '</td><td>' + esc(it ? it.es.n : g1.item) + '</td><td>' + esc(g1.modalidad === 'virtual' ? 'Virtual' : 'Presencial') + ' · ' + esc(g1.lugar) + '</td><td class="n">' + esc(g1.cupo) + '</td><td>' + (g1.fecha < CM.hoy() ? '<span class="pill p-mu">Pasada (no se muestra)</span>' : g1.activo ? '<span class="pill p-ok">Publicada</span>' : '<span class="pill p-mu">Oculta</span>') + '</td><td class="acts"><button class="btn sm" data-act="ag-edit" data-id="' + esc(g1.id) + '">Editar</button><button class="btn sm" data-act="ag-toggle" data-id="' + esc(g1.id) + '">' + (g1.activo ? 'Ocultar' : 'Mostrar') + '</button></td></tr>'; }).join('') : '<tr><td colspan="6"><div class="empty">Sin fechas cargadas.</div></td></tr>') + '</tbody></table></div><p class="hint">Las fechas pasadas dejan de mostrarse solas. Inscribirse es una solicitud: el cupo se confirma por WhatsApp.</p></section>';
     } else if (f.tab === 'bloques') {
-      var NB = { catalogo: 'Catálogo (siempre visible)', agenda: 'Agenda de talleres y cursos', pasos: 'Cómo funciona', faq: 'Preguntas frecuentes', club: 'Alta al club de socios/as', wifi: 'Wi-Fi para invitados', ubic: 'Ubicación y reseñas', redes: 'Redes sociales' };
+      var NB = { hc: 'Historia clínica y turnero', catalogo: 'Catálogo (siempre visible)', agenda: 'Agenda de talleres y cursos', pasos: 'Cómo funciona', faq: 'Preguntas frecuentes', club: 'Alta al club de socios/as', wifi: 'Wi-Fi para invitados', ubic: 'Ubicación, mapa y reseñas', redes: 'Redes sociales', legal: 'Información legal y arrepentimiento' };
       body = '<section class="card"><h2>Bloques y orden</h2><ul class="tl">' + d.orden.map(function (b, i) {
         var on = b === 'catalogo' ? true : d.bloques[b];
         return '<li class="rubrow"><span><b>' + esc(NB[b]) + '</b> ' + (on ? '<span class="pill p-ok">Activo</span>' : '<span class="pill p-mu">Apagado</span>') + '</span><span class="acts">' + (b === 'catalogo' ? '' : '<button class="btn sm" data-act="bl-toggle" data-v="' + b + '">' + (on ? 'Apagar' : 'Encender') + '</button>') + '<button class="btn sm" data-act="bl-mov" data-v="' + b + '" data-d="-1"' + (i === 0 ? ' disabled' : '') + ' aria-label="Subir ' + esc(NB[b]) + '">' + CM.icon('up') + '</button><button class="btn sm" data-act="bl-mov" data-v="' + b + '" data-d="1"' + (i === d.orden.length - 1 ? ' disabled' : '') + ' aria-label="Bajar ' + esc(NB[b]) + '">↓</button></span></li>';
@@ -340,7 +336,10 @@
       body = CM.hcAdmin();
     } else if (f.tab === 'club') {
       body = '<section class="card"><h2>Altas desde el menú público</h2><p style="color:var(--mu)">Cada alta guarda por separado el consentimiento de cada finalidad, con versión del aviso, fecha y origen. Sin permiso comercial, no se envía ninguna comunicación. El alta <b>no</b> da sellos ni beneficios.</p>' +
-        '<form data-form="mp-club" class="row"><label class="chk"><input type="checkbox" name="act"' + (d.club.activo ? ' checked' : '') + '><span>Habilitar el formulario de alta al club en el menú</span></label><button class="btn" type="submit">Guardar</button></form>' +
+        '<form data-form="mp-club" class="f"><label class="chk"><input type="checkbox" name="act"' + (d.club.activo ? ' checked' : '') + '><span>Habilitar el formulario de alta al club en el menú</span></label>' +
+          '<label class="chk"><input type="checkbox" name="tarj"' + (d.club.tarjeta !== false ? ' checked' : '') + '><span>Mostrar «Así se ve tu tarjeta» (tarjeta de ejemplo)</span></label><div class="f f2">' +
+          fl('Sellos para el beneficio', '<input class="in num" name="meta" inputmode="numeric" value="' + esc(d.club.meta) + '">') + fl('Beneficio (español)', '<input class="in" name="pes" maxlength="90" value="' + esc(d.club.premio.es) + '">') + fl('Beneficio (inglés)', '<input class="in" name="pen" maxlength="90" value="' + esc(d.club.premio.en) + '">') +
+          '</div><p class="err" role="alert" data-err></p><div class="row"><button class="btn pri" type="submit">Guardar en borrador</button></div></form>' +
         (m.altas.length ? '<div class="tw" style="margin-top:12px"><table><thead><tr><th>Fecha</th><th>Persona</th><th>Consentimientos</th><th>Estado</th><th></th></tr></thead><tbody>' + m.altas.slice().reverse().map(function (a) {
           return '<tr><td>' + esc(CM.fmtFH(a.ts)) + '</td><td>' + esc(a.nom + ' ' + a.ape) + '<br><small class="hint">Nac. ' + esc(CM.fmtFecha(a.nac)) + ' · WhatsApp ***' + esc(a.tel10.slice(-4)) + ' · ' + esc(a.origen) + '</small></td><td><small>Club: sí · Comunicaciones: ' + (a.cons.comerciales ? 'sí' : '<b>no</b>') + ' · Estadísticas: ' + (a.cons.estadisticas ? 'sí' : 'no') + ' · ' + esc(a.cons.version) + '</small></td><td><span class="pill ' + (a.estado === 'pendiente' ? 'p-warn' : a.estado === 'activo' ? 'p-ok' : 'p-mu') + '">' + esc(a.estado) + '</span></td><td class="acts">' + (a.estado === 'pendiente' ? '<button class="btn sm" data-act="alta-conv" data-id="' + esc(a.id) + '">Pasar a paciente</button><button class="btn sm" data-act="alta-rech" data-id="' + esc(a.id) + '">Rechazar</button>' : '') + '</td></tr>';
         }).join('') + '</tbody></table></div>' : '<div class="empty">Todavía no hay altas. Probá el formulario en el menú público.</div>') + '</section>' +
@@ -350,10 +349,18 @@
         fl('Modalidad', '<select class="in" name="modo">' + opt('manual', 'Clave fija cargada a mano', d.wifi.modo === 'manual') + opt('rotativa', 'Rotativa manual (con recordatorio)', d.wifi.modo === 'rotativa') + opt('auto', 'Rotación automática o portal cautivo (requiere router compatible: no disponible en la demo)', false, true) + '</select>') +
         fl('Vigencia', '<select class="in" name="vig">' + opt('horario', 'Visible sólo en horario de atención', d.wifi.vigencia === 'horario') + opt('siempre', 'Visible siempre', d.wifi.vigencia === 'siempre') + '</select>') + '</div><p class="err" role="alert" data-err></p><div class="row"><button class="btn pri" type="submit">Guardar en borrador</button></div></form>';
     } else if (f.tab === 'red') {
-      body = '<form class="card f" data-form="mp-red" autocomplete="off" novalidate><h2>Ubicación y reseñas</h2>' + fl('Búsqueda para el botón «Cómo llegar»', '<input class="in" name="consulta" value="' + esc(d.ubic.consulta) + '"><span class="hint">Se abre Google Maps con esta búsqueda. El mapa embebido está apagado (necesita consentimiento y ajustes de seguridad).</span>') +
-        fl('Enlace para dejar reseñas en Google (opcional)', '<input class="in" name="resena" placeholder="https://…" value="' + esc(d.ubic.resena) + '"><span class="hint">Mostrar reseñas dentro del menú requiere la API de Google y está pendiente de configuración. Nunca se muestran reseñas inventadas.</span>') +
-        '<h2 style="margin-top:6px">Redes sociales</h2>' + d.redes.map(function (r) { return '<div class="f f2">' + fl(r.label, r.url === 'wa' ? '<input class="in" value="Usa el WhatsApp de la ONG" disabled>' : '<input class="in" name="u_' + r.id + '" placeholder="https://…" value="' + esc(r.url) + '">') + '<label class="chk"><input type="checkbox" name="a_' + r.id + '"' + (r.activa ? ' checked' : '') + '><span>Mostrar «' + esc(r.label) + '»</span></label></div>'; }).join('') +
+      body = '<form class="card f" data-form="mp-red" autocomplete="off" novalidate><h2>Ubicación y reseñas</h2>' + fl('Búsqueda para el botón «Cómo llegar»', '<input class="in" name="consulta" value="' + esc(d.ubic.consulta) + '"><span class="hint">Se usa para el mapa y para «Cómo llegar» (nombre + dirección).</span>') +
+        '<label class="chk"><input type="checkbox" name="mapa"' + (d.ubic.mapa !== false ? ' checked' : '') + '><span>Mostrar el mapa de Google dentro del menú (la política de privacidad lo informa)</span></label>' +
+        fl('Enlace para dejar reseñas en Google (opcional)', '<input class="in" name="resena" placeholder="https://g.page/r/…/review" value="' + esc(d.ubic.resena) + '"><span class="hint">Botón «Dejar mi reseña».</span>') +
+        fl('Enlace para ver las reseñas (opcional)', '<input class="in" name="verres" placeholder="https://…" value="' + esc(d.ubic.verResenas) + '"><span class="hint">Botón «Ver reseñas». Mostrar reseñas dentro del menú requiere la API de Google [VERIFICAR]: nunca se muestran reseñas inventadas.</span>') +
+        '<h2 style="margin-top:6px">Redes sociales</h2>' + d.redes.map(function (r) { return '<div class="f f2">' + fl(r.label, r.url === 'wa' ? '<input class="in" value="Usa el WhatsApp de la ONG" disabled>' : '<input class="in" name="u_' + r.id + '" placeholder="https://…" value="' + esc(r.url) + '">') + fl('Usuario que se muestra', '<input class="in" name="h_' + r.id + '" maxlength="40" placeholder="@usuario" value="' + esc(r.handle || '') + '">') + '<label class="chk"><input type="checkbox" name="a_' + r.id + '"' + (r.activa ? ' checked' : '') + '><span>Mostrar «' + esc(r.label) + '»</span></label></div>'; }).join('') +
         '<p class="err" role="alert" data-err></p><div class="row"><button class="btn pri" type="submit">Guardar en borrador</button></div></form>';
+    } else if (f.tab === 'legal') {
+      var lg = d.legal;
+      body = '<form class="card f" data-form="mp-legal" autocomplete="off" novalidate><h2>Información legal del menú</h2><div class="note warn">Son <b>plantillas</b>: confirmalas con el asesor legal de la organización antes de publicarlas. Lo marcado [VERIFICAR] no está validado.</div>' +
+        '<label class="chk"><input type="checkbox" name="arrep"' + (lg.arrep ? ' checked' : '') + '><span><b>Botón de arrepentimiento</b> (Ley 24.240 y Res. 424/2020 [VERIFICAR]). Apagado por defecto en una organización sin fines de lucro: encendelo si tu asesor lo indica. Abre WhatsApp con el pedido redactado.</span></label>' +
+        lg.docs.map(function (x) { return '<fieldset class="card flat" style="margin:10px 0"><legend><b>' + esc(x.title) + '</b></legend><label class="chk"><input type="checkbox" name="on_' + esc(x.id) + '"' + (x.on !== false ? ' checked' : '') + '><span>Mostrar en el menú' + (x.id === 'arrepentimiento' ? ' (sólo si el botón está encendido)' : x.id === 'wifi' ? ' (sólo si el Wi-Fi está activo)' : '') + '</span></label>' + fl('Texto (usá **negrita** y una línea en blanco entre párrafos)', '<textarea class="in tall" name="tx_' + esc(x.id) + '" maxlength="6000">' + esc(x.text) + '</textarea>') + '</fieldset>'; }).join('') +
+        '<p class="err" role="alert" data-err></p><div class="row"><button class="btn pri" type="submit">Guardar en borrador</button><button class="btn" type="button" data-act="mp-legal-base">Restaurar plantillas</button></div></form>';
     } else if (f.tab === 'acc') {
       var url = urlPub();
       body = '<div class="grid g2"><form class="card f" data-form="mp-acc" autocomplete="off"><h2>Compartir y acceso</h2><label class="chk"><input type="checkbox" name="comp"' + (d.bloques.compartir ? ' checked' : '') + '><span>Botón «Compartir» (usa el menú de compartir del celular o copia el enlace)</span></label><label class="chk"><input type="checkbox" name="vol"' + (d.bloques.volver ? ' checked' : '') + '><span>Botón flotante «Volver arriba»</span></label>' +
@@ -490,7 +497,13 @@
     if (!perm()) return; var o = dr().orden, b = t.getAttribute('data-v'), i = o.indexOf(b), j = i + parseInt(t.getAttribute('data-d'), 10);
     if (j < 0 || j >= o.length) return; o.splice(i, 1); o.splice(j, 0, b); guardarBorrador('Orden de bloques');
   };
-  CM.forms['mp-club'] = function (f) { if (!perm()) return; dr().club.activo = f.elements.act.checked; guardarBorrador('Alta al club ' + (dr().club.activo ? 'habilitada' : 'deshabilitada')); };
+  CM.forms['mp-club'] = function (f) {
+    if (!perm()) return; var e = f.elements, c = dr().club, n = parseInt(e.meta.value, 10);
+    if (isNaN(n) || n < 3 || n > 20) return fail(f, 'meta', 'Los sellos para el beneficio van de 3 a 20.');
+    if (e.pes.value.trim().length < 3) return fail(f, 'pes', 'Escribí el beneficio.');
+    c.activo = e.act.checked; c.tarjeta = e.tarj.checked; c.meta = n; c.premio = { es: e.pes.value.trim(), en: e.pen.value.trim() || e.pes.value.trim() };
+    guardarBorrador('Club: alta ' + (c.activo ? 'habilitada' : 'deshabilitada') + ' · tarjeta de ejemplo ' + (c.tarjeta ? 'visible' : 'oculta'));
+  };
   CM.acts['alta-rech'] = function (t) { if (!CM.need('menu', 'edit')) return; var a = CM.db.menu.altas.filter(function (x) { return x.id === t.getAttribute('data-id'); })[0]; a.estado = 'rechazado'; CM.audit('Alta al club rechazada', a.id); CM.save(); render(); };
   CM.acts['alta-conv'] = function (t) {
     if (!CM.need('menu', 'edit')) return;
@@ -515,13 +528,25 @@
   CM.forms['mp-red'] = function (f) {
     if (!perm()) return; var e = f.elements, d = dr();
     if (e.resena.value.trim() && !CM.urlHttps(e.resena.value)) return fail(f, 'resena', 'El enlace de reseñas debe ser https.');
+    if (e.verres.value.trim() && !CM.urlHttps(e.verres.value)) return fail(f, 'verres', 'El enlace para ver reseñas debe ser https.');
     for (var i = 0; i < d.redes.length; i++) {
-      var r = d.redes[i]; if (r.url === 'wa') { r.activa = e['a_' + r.id].checked; continue; }
+      var r = d.redes[i]; if (e['h_' + r.id]) r.handle = e['h_' + r.id].value.trim().slice(0, 40); if (r.url === 'wa') { r.activa = e['a_' + r.id].checked; continue; }
       var u = e['u_' + r.id].value.trim(), on = e['a_' + r.id].checked;
       if (on && !urlRed(r.label, u)) return fail(f, 'u_' + r.id, 'El enlace de ' + r.label + ' tiene que ser https y de su dominio oficial.');
       r.url = u; r.activa = on;
     }
-    d.ubic.consulta = e.consulta.value.trim(); d.ubic.resena = e.resena.value.trim(); guardarBorrador('Ubicación y redes');
+    d.ubic.consulta = e.consulta.value.trim(); d.ubic.resena = e.resena.value.trim(); d.ubic.verResenas = e.verres.value.trim(); d.ubic.mapa = e.mapa.checked; guardarBorrador('Ubicación, mapa, reseñas y redes');
+  };
+  CM.forms['mp-legal'] = function (f) {
+    if (!perm()) return; var e = f.elements, lg = dr().legal;
+    for (var i = 0; i < lg.docs.length; i++) { var x = lg.docs[i], tx = e['tx_' + x.id].value.trim(); if (e['on_' + x.id].checked && tx.length < 20) return fail(f, 'tx_' + x.id, 'El texto de «' + x.title + '» es muy corto.'); x.text = tx; x.on = e['on_' + x.id].checked; }
+    var antes = lg.arrep; lg.arrep = e.arrep.checked;
+    guardarBorrador('Información legal' + (antes !== lg.arrep ? ' · botón de arrepentimiento ' + (lg.arrep ? 'encendido' : 'apagado') : ''));
+  };
+  CM.acts['mp-legal-base'] = function () { if (!perm()) return; var d = dr(); d.legal.docs = CM.legalBase(d); guardarBorrador('Información legal: plantillas restauradas'); };
+  CM.acts['pub-arrep'] = function () {
+    var cfg = CM.db.menu.pub; if (!cfg || !cfg.legal || !cfg.legal.arrep) return;
+    g.open('https://wa.me/' + encodeURIComponent(cfg.wa) + '?text=' + encodeURIComponent(CM.pubExt.arrepMsg(lang())), '_blank', 'noopener');
   };
   CM.forms['mp-acc'] = function (f) {
     if (!perm()) return; var e = f.elements, n = parseInt(e.toq.value, 10);

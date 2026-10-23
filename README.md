@@ -5,6 +5,16 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-10-23) · Menú público con los bloques unificados de Sistema VB
+
+- **Tarjeta del Club de ejemplo** («Así se ve tu tarjeta»), con la meta de sellos y el beneficio que se configuran en *Menú público → Club y altas*. Dice «ejemplo»: no es la tarjeta de nadie.
+- **Dónde estamos**: mapa de Google dentro del menú (se puede apagar), dirección, WhatsApp, correo y botón «Cómo llegar».
+- **Reseñas**: botones «Dejar mi reseña» y «Ver reseñas» con los enlaces que cargue la fundación (sólo https). Nunca se muestran reseñas inventadas.
+- **Redes**: grilla con ícono, nombre y usuario de cada red activa.
+- **Información legal** (pestaña nueva): privacidad y datos de salud, historia clínica y REPROCANN, donaciones, Club, Wi-Fi y arrepentimiento, editables. Son plantillas: **confirmarlas con el asesor legal** [VERIFICAR].
+- **Botón de arrepentimiento**: incluido pero **apagado por defecto** (organización sin fines de lucro). Al encenderlo abre WhatsApp con el pedido redactado.
+- Todo pasa por borrador → publicar, como el resto del menú. Prueba: `t/e2e_pubext.py` (22 verificaciones, sin tocar la nube).
+
 ## Novedades (2026-10-22)
 - **Ficha del paciente: una sola carpeta por legajo** (se abre directo) y **Documentos y escaneos**: subir PDF o fotos, o escanear con la cámara del celular. Cada archivo va a la carpeta del legajo con nombre único (legajo, tipo, fecha, versión y huella SHA-256), nunca reemplaza uno anterior y queda registrado quién lo subió y cuándo. El registro se sincroniza entre equipos (colección `legDocs`).
 - **Google Drive**: por ahora la conexión es manual (Client ID OAuth de la ONG, el permiso dura la sesión del equipo). Si Drive no está conectado, el archivo queda guardado **en ese equipo** como «pendiente de subir» y se sube solo al conectar. Pendiente: cuenta de servicio de la ONG para que las carpetas y subidas sean automáticas.
