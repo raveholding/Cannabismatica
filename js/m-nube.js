@@ -138,6 +138,19 @@
     return conToken(function () { return fetchT(URL_ + '/rest/v1/' + qs, { method: 'GET', headers: hdr(true), cache: 'no-store' }, 40000).then(leer); });
   }
   N._rpc = rpc;
+  /* funciones de servidor (Edge Functions): su falla NUNCA marca la nube como caída (lección v2.3) */
+  N._fn = function (nombre, body) {
+    if (!/^[a-z0-9-]{3,40}$/.test(nombre)) return Promise.reject(new Error('funcion_invalida'));
+    return conToken(function () {
+      return fetchT(URL_ + '/functions/v1/' + nombre, { method: 'POST', headers: hdr(true), body: JSON.stringify(body || {}), cache: 'no-store' }, 90000).then(function (r) {
+        return r.text().then(function (t) {
+          var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; }
+          if (r.status >= 200 && r.status < 300) return j;
+          var er = new Error((j && j.error) || ('http_' + r.status)); er.status = r.status; er.codigo = (j && j.codigo) || ''; er.fn = true; throw er;
+        });
+      });
+    });
+  };
 
   /* =================================================================
      almacenamiento local cifrado (IndexedDB) y llave

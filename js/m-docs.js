@@ -2,8 +2,8 @@
    - UNA carpeta por legajo (Legajos/{legajo}_{DNI}). Se abre directo desde la ficha.
    - Subir un documento o una foto (cámara del celular): va a la carpeta del legajo con nombre único; queda registrado
      quién, cuándo, tipo, huella SHA-256 y versión. Nunca se pisa ni se duplica (misma huella = ya estaba).
-   - Drive por SERVIDOR (cuenta de servicio de la ONG, sistema con nube): nadie conecta nada en ningún equipo.
-     Drive por NAVEGADOR (Client ID OAuth, mientras no haya cuenta de servicio): hace falta «Conectar Drive» en cada sesión.
+   - Drive por SERVIDOR (Drive de la ONG conectado una vez por un administrador; js/m-drivesrv.js): nadie conecta nada en ningún equipo.
+     Drive por NAVEGADOR (Client ID OAuth, sólo sin nube): hace falta «Conectar Drive» en cada sesión.
    - Si Drive no está disponible, el archivo queda guardado EN ESTE EQUIPO como «pendiente de subir» y se sube solo después.
      Nunca se informa «subido» sin la respuesta de Google. Los datos clínicos no van a la auditoría (sólo legajo, tipo y huella). */
 (function (g) {
@@ -22,8 +22,7 @@
 
   /* ---------- modo de Drive ---------- */
   CM.driveModo = function () {
-    var o = CM.db.ong || {}, srv = o.driveSrv || {};
-    if (CM.nubeFn && srv.raiz) return 'servidor';          // sistema con nube + cuenta de servicio configurada
+    var o = CM.db.ong || {};
     if (o.driveClientId) return 'navegador';               // conexión manual por sesión (Client ID OAuth)
     return 'pendiente';
   };
@@ -114,9 +113,9 @@
     } else if (p.drive1 === EJEMPLO) {
       h += '<div class="row" style="margin-top:10px"><a class="btn pri" href="' + esc(EJEMPLO) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir Drive (enlace genérico)</a></div><p class="hint">Este enlace no es la carpeta propia del paciente: creala o vinculala para que sus documentos queden juntos.</p>';
     } else {
-      h += '<div class="note ' + (modo === 'servidor' ? 'info' : 'warn') + '" style="margin-top:10px">' + (modo === 'servidor' ? 'La carpeta se crea sola en el servidor; aparece acá en la próxima sincronización.' : 'Todavía no tiene carpeta.') + '</div>' +
-        (oper && modo !== 'servidor' ? '<div class="row"><button class="btn pri" data-act="drive-crear" data-dni="' + esc(p.dni) + '">' + CM.icon('plus') + 'Crear carpeta del legajo</button></div>' : '') +
-        (modo === 'pendiente' ? '<p class="hint">Con la nube del sistema real, la carpeta se crea sola con la cuenta de servicio de la ONG (nadie tiene que conectar nada).</p>' : '');
+      h += '<div class="note ' + (modo === 'servidor' ? 'info' : 'warn') + '" style="margin-top:10px">' + (modo === 'servidor' ? 'La carpeta se crea sola en el Drive de la ONG en el próximo minuto.' : 'Todavía no tiene carpeta.') + '</div>' +
+        (oper ? '<div class="row"><button class="btn pri" data-act="' + (modo === 'servidor' ? 'drive-crear-srv' : 'drive-crear') + '" data-dni="' + esc(p.dni) + '">' + CM.icon('plus') + (modo === 'servidor' ? 'Crear carpeta ahora' : 'Crear carpeta del legajo') + '</button></div>' : '') +
+        (modo === 'pendiente' ? '<p class="hint">Cuando un administrador conecte una vez el Google Drive de la ONG (Pacientes), la carpeta se crea sola y nadie más tiene que conectar nada.</p>' : '');
     }
     var extra = [];
     if (p.drive2) extra.push('<a href="' + esc(p.drive2) + '" target="_blank" rel="noopener noreferrer">carpeta anterior de historial clínico</a>');
