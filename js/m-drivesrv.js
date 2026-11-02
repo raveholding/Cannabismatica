@@ -83,6 +83,7 @@
   CM.acts['drive-srv-conectar'] = function () {
     if (!CM.need('pacientes', 'admin')) return;
     N._fn('drive-legajos', { accion: 'conectar' }).then(function (r) {
+      if (r && r.sim && N.sim) return N.sim.conectar();    // ejemplo sin Google real (js/m-drivesim.js)
       if (!r || !/^https:\/\/accounts\.google\.com\//.test(r.url || '')) throw new Error('Respuesta inesperada.');
       CM.audit('Drive: conexión iniciada', 'Se abrió la autorización de Google');
       g.location.href = r.url;
@@ -104,7 +105,8 @@
     var admin = CM.can('pacientes', 'admin');
     if (!S.cargado) return '';
     var h = '<section class="card" style="margin-bottom:14px"><div class="row sp"><h2 style="margin:0">Google Drive de la ONG</h2>' +
-      (S.conectado ? '<span class="pill p-ok">Conectado' + (S.cuenta ? ' · ' + esc(S.cuenta) : '') + '</span>' : S.configurado ? '<span class="pill p-warn">Sin conectar</span>' : '<span class="pill p-warn">Pendiente de configuración</span>') + '</div>';
+      (S.conectado ? '<span class="pill p-ok">Conectado' + (S.cuenta ? ' · ' + esc(S.cuenta) : '') + '</span>' : S.configurado ? '<span class="pill p-warn">Sin conectar</span>' : '<span class="pill p-warn">Pendiente de configuración</span>') + '</div>' +
+      (N.sim ? '<div class="note warn" role="note" style="margin-top:8px"><b>Ejemplo, sin Google real:</b> así se ve en el sistema con nube. Las carpetas y los archivos son de ejemplo y sus enlaces no abren nada.</div>' : '');
     if (S.conectado) {
       h += '<p class="hint" style="margin:8px 0">Las carpetas de los legajos y los documentos se guardan solos desde cualquier equipo. Nadie tiene que conectar nada.</p>' +
         (S.msg ? '<div class="note ' + (S.bad ? 'bad' : 'ok') + '" role="status">' + esc(S.msg) + '</div>' : '') +
