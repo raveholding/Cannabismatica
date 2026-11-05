@@ -430,6 +430,8 @@
   CM.boot = function () {
     CM.init();
     if (!/^#\/(m|acceso)/.test(g.location.hash || '')) g.location.hash = '#/m';
+    /* si este equipo ya vio el menú, se muestra al instante y se actualiza solo cuando responde el servidor */
+    if (N.anon && N.menuGuardado && N.menuGuardado()) { N.menuIntento = true; N.menuCache = true; }
     render();
     var p1 = N.cargarMenu().then(function () { render(); });
     N.verSetup().then(function () { if (ruta() === 'acceso') render(); });

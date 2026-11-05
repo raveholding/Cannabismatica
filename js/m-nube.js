@@ -677,13 +677,20 @@
      menú público para visitantes (sin sesión)
      ================================================================= */
   N.cargarMenu = function () {
-    return rpc('pub_menu_obtener', {}, true).then(function (r) {
+    /* primera vez: se usa el pedido anticipado de js/pre.js (ya viene viajando); si falló, se pide de nuevo */
+    var pre = g.CM_PRE_MENU; g.CM_PRE_MENU = null;
+    var pedido = pre ? pre.catch(function () { return rpc('pub_menu_obtener', {}, true); }) : rpc('pub_menu_obtener', {}, true);
+    return pedido.then(function (r) {
       if (r && r.data && CM.db && N.anon) { CM.db.menu.pub = r.data; CM.db.menu.draft = clonar(r.data); lsSet('cmv3_menu', JSON.stringify(r.data)); }
       N.menuOk = true;
     }, function () {
       var c = lsGet('cmv3_menu');
       if (c && CM.db && N.anon) { try { var d = JSON.parse(c); CM.db.menu.pub = d; CM.db.menu.draft = clonar(d); } catch (e) { /* nada */ } }
     });
+  };
+  N.menuGuardado = function () {
+    var c = lsGet('cmv3_menu'); if (!c || !CM.db || !N.anon) return false;
+    try { var d = JSON.parse(c); if (!d || typeof d !== 'object') return false; CM.db.menu.pub = d; CM.db.menu.draft = clonar(d); return true; } catch (e) { return false; }
   };
   N.verSetup = function () {
     return rpc('bootstrap_estado', {}, true).then(function (b) { N.needSetup = !b; }, function () { /* se asume configurado */ });

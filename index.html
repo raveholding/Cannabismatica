@@ -8,13 +8,24 @@
 <meta name="robots" content="noindex">
 <title>Cannabismatica I+D · Sistema VB ONG</title>
 <meta name="description" content="Sistema de gestión de la Fundación Cannabismatica Investigación y Desarrollo: pacientes por DNI, Drive, REPROCANN, trazabilidad de dispensaciones y donaciones voluntarias.">
+<link rel="preconnect" href="https://ouvfubqmrixdbgjhzhiu.supabase.co" crossorigin>
+<style>
+/* pantalla de carga: se ve apenas abre el link, antes de que llegue el resto del sistema */
+html{background:#060806}
+#splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#060806;color:#9aa795;font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;z-index:9999}
+#splash img{width:min(240px,62vw);height:auto}
+#splash i{width:28px;height:28px;border:3px solid #232b20;border-top-color:#A8E600;border-radius:50%;animation:spl .8s linear infinite}
+@keyframes spl{to{transform:rotate(360deg)}}
+html.rdy #splash{display:none}
+</style>
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="css/app.css?v=35">
-<link rel="stylesheet" href="css/mods.css?v=35">
-<link rel="stylesheet" href="css/theme.css?v=35">
+<link rel="stylesheet" href="css/app.css?v=36">
+<link rel="stylesheet" href="css/mods.css?v=36">
+<link rel="stylesheet" href="css/theme.css?v=36">
 </head>
 <body>
+<div id="splash" aria-hidden="true"><img src="assets/logo.png" alt="" width="723" height="220"><i></i><span>Cargando…</span></div>
 <a class="skip" href="#main">Saltar al contenido</a>
 <div class="app" id="app">
   <aside class="side">
@@ -41,28 +52,29 @@
 <div id="modalRoot"></div>
 <div id="toastRoot" aria-live="polite" role="status"></div>
 <div id="printArea" aria-hidden="true"></div>
-<noscript><style>html:not(.rdy) .app{visibility:visible}</style><p style="padding:20px;color:#fff">Este sistema necesita JavaScript activado.</p></noscript>
-<script src="js/config.js?v=35"></script>
-<script src="js/qrcode.js?v=35"></script>
-<script src="js/core.js?v=35"></script>
-<script src="js/ext.js?v=35"></script>
-<script src="js/ui.js?v=35"></script>
-<script src="js/ident.js?v=35"></script>
-<script src="js/app.js?v=35"></script>
-<script src="js/m-caja.js?v=35"></script>
-<script src="js/m-gestion.js?v=35"></script>
-<script src="js/m-menu.js?v=35"></script>
-<script src="js/m-pubext.js?v=35"></script>
-<script src="js/m-hc.js?v=35"></script>
-<script src="js/m-sistema.js?v=35"></script>
-<script src="js/m-cultivo.js?v=35"></script>
-<script src="js/m-club2.js?v=35"></script>
-<script src="js/m-drive.js?v=35"></script>
-<script src="js/m-legajo.js?v=35"></script>
-<script src="js/m-docs.js?v=35"></script>
-<script src="js/m-nube.js?v=35"></script>
-<script src="js/m-nube2.js?v=35"></script>
-<script src="js/m-drivesrv.js?v=35"></script>
-<script src="js/boot.js?v=35"></script>
+<noscript><style>html:not(.rdy) .app{visibility:visible}#splash{display:none}</style><p style="padding:20px;color:#fff">Este sistema necesita JavaScript activado.</p></noscript>
+<script src="js/config.js?v=36"></script>
+<script src="js/pre.js?v=36"></script>
+<script src="js/qrcode.js?v=36"></script>
+<script src="js/core.js?v=36"></script>
+<script src="js/ext.js?v=36"></script>
+<script src="js/ui.js?v=36"></script>
+<script src="js/ident.js?v=36"></script>
+<script src="js/app.js?v=36"></script>
+<script src="js/m-caja.js?v=36"></script>
+<script src="js/m-gestion.js?v=36"></script>
+<script src="js/m-menu.js?v=36"></script>
+<script src="js/m-pubext.js?v=36"></script>
+<script src="js/m-hc.js?v=36"></script>
+<script src="js/m-sistema.js?v=36"></script>
+<script src="js/m-cultivo.js?v=36"></script>
+<script src="js/m-club2.js?v=36"></script>
+<script src="js/m-drive.js?v=36"></script>
+<script src="js/m-legajo.js?v=36"></script>
+<script src="js/m-docs.js?v=36"></script>
+<script src="js/m-nube.js?v=36"></script>
+<script src="js/m-nube2.js?v=36"></script>
+<script src="js/m-drivesrv.js?v=36"></script>
+<script src="js/boot.js?v=36"></script>
 </body>
 </html>
