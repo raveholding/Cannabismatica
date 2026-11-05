@@ -75,6 +75,7 @@
   }
   function subir(p, d) {
     var modo = CM.driveModo();
+    if (modo === 'verificando') return Promise.reject(new Error('Verificando el Drive de la ONG: el archivo queda guardado en este equipo y se sube solo en unos segundos.'));
     if (modo === 'pendiente') return Promise.reject(new Error('Drive pendiente de configuración: el archivo queda guardado en este equipo.'));
     if (modo === 'navegador' && !(drv() && drv().conectado())) return Promise.reject(new Error('Drive sin conectar: el archivo queda guardado en este equipo.'));
     return leerLocal(d.id).then(function (blob) {
@@ -98,7 +99,7 @@
   /* reintento automático: cada 30 s si Drive está disponible */
   setInterval(function () {
     if (est.busy || !CM.db || !CM.db.legDocs) return;
-    var m = CM.driveModo(); if (m === 'pendiente' || (m === 'navegador' && !(drv() && drv().conectado()))) return;
+    var m = CM.driveModo(); if (m === 'pendiente' || m === 'verificando' || (m === 'navegador' && !(drv() && drv().conectado()))) return;
     if (!CM.db.legDocs.some(function (d) { return d.estado === 'pendiente'; })) return;
     est.busy = true; CM.docsSubirPendientes().then(function (r) { est.busy = false; if (r.ok) render(); });
   }, 30000);
@@ -106,7 +107,7 @@
   /* ---------- pantalla: carpeta del legajo ---------- */
   CM.carpetaLegajoHtml = function (p) {
     var u = carpetaUrl(p), modo = CM.driveModo(), oper = CM.can('pacientes', 'oper'), admin = CM.can('pacientes', 'admin');
-    var estado = modo === 'servidor' ? '<span class="pill p-ok">Drive automático (servidor)</span>' : modo === 'navegador' ? (drv() && drv().conectado() ? '<span class="pill p-ok">Drive conectado</span>' : '<span class="pill">Drive sin conectar</span>') : '<span class="pill p-warn">Drive pendiente de configuración</span>';
+    var estado = modo === 'servidor' ? '<span class="pill p-ok">Drive automático (servidor)</span>' : modo === 'verificando' ? '<span class="pill p-info">Verificando Drive…</span>' : modo === 'navegador' ? (drv() && drv().conectado() ? '<span class="pill p-ok">Drive conectado</span>' : '<span class="pill">Drive sin conectar</span>') : '<span class="pill p-warn">Drive pendiente de configuración</span>';
     var h = '<section class="card drive" style="margin-top:14px"><div class="row sp"><div class="t">' + CM.icon('drive') + '<div><h3 style="margin:0">Carpeta del legajo · ' + esc(p.leg || '—') + '</h3><span class="hint">Una sola carpeta por legajo: ' + esc(CM.nombreCarpetaLegajo(p)) + '</span></div></div>' + estado + '</div>';
     if (u) {
       h += '<div class="row" style="margin-top:10px"><a class="btn pri" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir carpeta del legajo</a><button class="btn sm" data-act="copiar" data-v="' + esc(u) + '">' + CM.icon('copy') + 'Copiar enlace</button></div>';

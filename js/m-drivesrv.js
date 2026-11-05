@@ -24,13 +24,17 @@
       S.cargado = true; S.ts = Date.now(); S.configurado = !!r.configurado; S.conectado = !!r.conectado; S.cuenta = r.cuenta || ''; S.raiz = /^https:\/\/drive\.google\.com\//.test(r.raiz || '') ? r.raiz : '';
       if (antes !== S.conectado) render();
       return S;
-    }, function () { S.cargado = true; S.ts = Date.now(); return S; });   // función no disponible: queda «pendiente», la nube sigue bien
+    }, function () { S.fallo = Date.now(); return S; });   // falla momentánea (red o arranque de la función): se reintenta en segundos, sin mostrar «pendiente de configuración»
   };
+  /* apenas alguien ingresa, se consulta el Drive de la ONG (antes recién al minuto y mientras tanto aparecía el aviso del Client ID) */
+  var login0 = N.login;
+  if (login0) N.login = function () { return login0.apply(N, arguments).then(function (r) { CM.driveSrvEstado(true).then(render); return r; }); };
 
   /* ---------- modo: servidor cuando el Drive de la ONG está conectado ---------- */
   var modo0 = CM.driveModo;
   CM.driveModo = function () {
     if (S.conectado) return 'servidor';
+    if (haySesion() && !S.cargado) return 'verificando';
     var m = modo0 ? modo0() : 'pendiente';
     return m === 'servidor' ? 'pendiente' : m;
   };
@@ -61,18 +65,29 @@
     if (!haySesion()) return;
     CM.driveSrvEstado(false).then(function () { if (S.conectado && CM.can('pacientes', 'oper') && pendientes().length) lote(10).then(function (r) { if (r.ok) render(); }); });
   }, 60000);
-  setTimeout(function () { CM.driveSrvEstado(true); }, 4000);
+  setInterval(function () { if (haySesion() && !S.cargado) CM.driveSrvEstado(true).then(function () { if (S.cargado) render(); }); }, 10000);
+  setTimeout(function () { CM.driveSrvEstado(true).then(render); }, 1500);
 
   /* en modo servidor, «pendiente» del legajo = sin carpeta (la hoja de Google es del modo manual) */
   var pend0 = CM.legajoPend;
   CM.legajoPend = function () { return S.conectado ? pendientes() : (pend0 ? pend0() : []); };
   var lote0 = CM.acts['legajo-lote'];
   CM.acts['legajo-lote'] = function (t) {
-    if (!S.conectado) return lote0 && lote0(t);
     if (!CM.need('pacientes', 'oper')) return;
+    if (S.conectado) return loteSrv();
+    /* antes de decidir, se pregunta al servidor: puede que el Drive de la ONG ya esté conectado */
+    CM.toast('Verificando el Drive de la ONG…');
+    CM.driveSrvEstado(true).then(function () {
+      if (S.conectado) return loteSrv();
+      if (CM.db.ong && CM.db.ong.driveClientId && lote0) return lote0(t);   // conexión manual por navegador (si la ONG la configuró)
+      render();
+      CM.toast(!S.cargado ? 'No pudimos consultar el Drive de la ONG. Probá de nuevo en unos segundos.' : S.configurado ? 'El Drive de la ONG no está conectado: un administrador tiene que tocar «Conectar Google Drive de la ONG».' : 'Falta terminar la configuración de Google en el servidor.', true);
+    });
+  };
+  function loteSrv() {
     var n = pendientes().length; S.msg = 'Creando ' + n + ' carpeta(s)…'; S.bad = false; render();
     lote(200).then(function (r) { S.msg = r.ok + ' carpeta(s) creada(s).' + (r.mal ? ' ' + r.mal + ' con error: ' + r.ult : ''); S.bad = r.mal > 0; render(); });
-  };
+  }
   CM.acts['drive-crear-srv'] = function (t) {
     var p = CM.paciente(t.getAttribute('data-dni')); if (!p || !CM.need('pacientes', 'oper')) return;
     CM.toast('Creando la carpeta del legajo…');
@@ -103,7 +118,7 @@
   CM.driveSrvHtml = function () {
     if (!haySesion()) return '';
     var admin = CM.can('pacientes', 'admin');
-    if (!S.cargado) return '';
+    if (!S.cargado) return '<section class="card" style="margin-bottom:14px"><div class="row sp"><h2 style="margin:0">Google Drive de la ONG</h2><span class="pill p-info">Verificando…</span></div></section>';
     var h = '<section class="card" style="margin-bottom:14px"><div class="row sp"><h2 style="margin:0">Google Drive de la ONG</h2>' +
       (S.conectado ? '<span class="pill p-ok">Conectado' + (S.cuenta ? ' · ' + esc(S.cuenta) : '') + '</span>' : S.configurado ? '<span class="pill p-warn">Sin conectar</span>' : '<span class="pill p-warn">Pendiente de configuración</span>') + '</div>' +
       (N.sim ? '<div class="note warn" role="note" style="margin-top:8px"><b>Ejemplo, sin Google real:</b> así se ve en el sistema con nube. Las carpetas y los archivos son de ejemplo y sus enlaces no abren nada.</div>' : '');

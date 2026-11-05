@@ -592,7 +592,7 @@
     if (N.enCurso || N.anon || !N.ses) return Promise.resolve();
     N.enCurso = true; N.estadoTxt = 'Sincronizando…'; actualizarChip();
     var s = CM.db._s, primera = !s.cur && !s.ini, rolCambio = false;
-    return (N.ses.exp - Date.now() < 90000 ? refrescar() : Promise.resolve()).then(function () { return refreshMe(); }).then(function (c) { rolCambio = c; return traer(); }).then(function (r) {
+    return (N.ses.exp - Date.now() < 90000 ? refrescar() : Promise.resolve()).then(function () { return Date.now() - (N._meTs || 0) < 20000 ? false : refreshMe(); }).then(function (c) { rolCambio = c; return traer(); }).then(function (r) {
       if (rolCambio) r.cambios.rol = 1;
       if (primera) {
         s.ini = true;

@@ -98,7 +98,9 @@
   /* ---------- pantallas ---------- */
   function pillDrive() {
     var cid = !!(CM.db.ong && CM.db.ong.driveClientId);
-    if (CM.driveModo && CM.driveModo() === 'servidor') return '<span class="pill p-ok">Drive automático (servidor)</span>';
+    var m = CM.driveModo && CM.driveModo();
+    if (m === 'servidor') return '<span class="pill p-ok">Drive automático (servidor)</span>';
+    if (m === 'verificando') return '<span class="pill p-info">Verificando Drive…</span>';
     return !cid ? '<span class="pill p-warn">Drive pendiente de configuración</span>' : D.conectado() ? '<span class="pill p-ok">Drive conectado</span>' : '<span class="pill">Drive sin conectar</span>';
   }
   CM.legajoBanner = function () {
@@ -110,10 +112,11 @@
     return '<section class="card" style="margin-bottom:14px"><div class="row sp"><h2 style="margin:0">Legajos: carpetas y formularios</h2>' + pillDrive() + '</div>' +
       '<div class="row" style="margin-top:8px"><span class="pill ' + (sc ? 'p-warn' : 'p-ok') + '">' + sc + ' sin carpeta</span><span class="pill ' + (ni ? 'p-warn' : 'p-ok') + '">' + ni + ' con ingreso sin completar</span><span class="pill ' + (nh ? 'p-warn' : 'p-ok') + '">' + nh + ' con historia clínica sin completar</span></div>' +
       '<p class="hint" style="margin:8px 0">Cada paciente que completa el formulario de ingreso queda con un legajo único. Con el Drive de la ONG conectado, el sistema crea su carpeta (<b>Legajos/legajo_DNI</b>) y su fila en la hoja de legajos. Los datos clínicos no se copian a la hoja.</p>' +
-      (est.msg ? '<div class="note ' + (est.bad ? 'bad' : 'ok') + '" role="status">' + esc(est.msg) + '</div>' : '') +
+      (est.msg && !(CM.driveModo && CM.driveModo() === 'servidor') ? '<div class="note ' + (est.bad ? 'bad' : 'ok') + '" role="status">' + esc(est.msg) + '</div>' : '') +
       '<div class="row">' + (oper ? '<button class="btn pri" data-act="legajo-lote"' + (est.busy || !pend.length ? ' disabled' : '') + '>' + CM.icon('drive') + (D.conectado() || (CM.driveModo && CM.driveModo() === 'servidor') ? 'Crear carpetas de ' : 'Conectar Drive y procesar ') + pend.length + ' legajo(s) pendiente(s)</button>' : '') +
       (hojaUrl ? '<a class="btn" href="' + esc(hojaUrl) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir la hoja de legajos</a>' : '') + '</div>' +
       '<p class="hint" style="margin:8px 0 0">' + (CM.driveModo && CM.driveModo() === 'servidor' ? 'Las carpetas se crean solas en el Drive de la ONG: nadie tiene que conectar nada en ningún equipo.' :
+        CM.driveModo && CM.driveModo() === 'verificando' ? 'Verificando la conexión con el Drive de la ONG…' :
         'Por ahora la conexión con Google Drive es manual: una persona de la ONG toca «Conectar» y el permiso dura la sesión de ese equipo' + (cid ? '.' : ' (falta cargar el Client ID de Google en Trazabilidad → Planilla de cultivo).') + ' Con el Drive de la ONG conectado una vez en el servidor (tarjeta de arriba), las carpetas se crean solas y nadie tiene que conectar nada.') + '</p></section>';
   };
   CM.legajoFormsHtml = function (p) {

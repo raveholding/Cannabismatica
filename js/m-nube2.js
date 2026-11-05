@@ -56,15 +56,24 @@
      ingreso
      ================================================================= */
   function emailKey(c) { return 'cmv3_u_' + CM.sha256('u|' + c); }
-  function abrirBase(clave, me, eq) {
-    var s = N.ses, uid = s.uid;
+  /* lee la base cifrada de este equipo y deriva la llave (PBKDF2, lo más pesado del ingreso en un celular).
+     Arranca en paralelo con las consultas al servidor para que el ingreso no espere una cosa detrás de la otra. */
+  function prepararBase(uid, clave) {
     return I.idbGet('db_' + uid).then(function (blob) {
+      if (!blob || !blob.c) return { blob: null, k: null };
+      return I.derivar(clave, I.unb64(blob.s)).then(function (k) { return { blob: blob, k: k }; });
+    }).catch(function () { return { blob: null, k: null }; });
+  }
+  function abrirBase(clave, me, eq, prep) {
+    var s = N.ses, uid = s.uid;
+    return (prep || prepararBase(uid, clave)).then(function (pb) {
+      var blob = pb.blob;
       function fresco() {
         var salt = g.crypto.getRandomValues(new Uint8Array(16));
         return I.derivar(clave, salt).then(function (k) { s.key = k; s.salt = salt; I.dbVacia(); return false; });
       }
-      if (!blob || !blob.c) return fresco();
-      return I.derivar(clave, I.unb64(blob.s)).then(function (k) {
+      if (!blob || !blob.c || !pb.k) return fresco();
+      return Promise.resolve(pb.k).then(function (k) {
         return I.descifrar(k, blob).then(function (db) {
           if (!db || !db._s || db._s.v !== 3) return fresco();
           s.key = k; s.salt = I.unb64(blob.s); CM.db = db; return true;
@@ -82,10 +91,16 @@
   }
   function iniciar(j, correo, clave) {
     N.ses = { at: j.access_token, rt: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000, uid: j.user && j.user.id, correo: correo, me: null };
-    return rpc('miembro_actual', {}).then(function (me) {
+    /* en paralelo: quién es (miembro_actual), número de equipo y la llave local. Antes iban en fila y el ingreso demoraba. */
+    var prep = prepararBase(N.ses.uid, clave), eqErr = null;
+    var pEq = rpc('equipo_num', { p_device: devId(), p_etiqueta: etiqueta() }).catch(function (e) { eqErr = e; return null; });
+    return Promise.all([rpc('miembro_actual', {}), pEq]).then(function (r) {
+      var me = r[0], eq = r[1];
       if (!me) { var e = new Error('sin_miembro'); e.sinMiembro = true; throw e; }
+      if (eqErr) throw eqErr;
       N.ses.me = { nombre: me.nombre, correo: me.correo, rol: me.rol, cambiar: !!me.cambiar };
-      return rpc('equipo_num', { p_device: devId(), p_etiqueta: etiqueta() }).then(function (eq) { return abrirBase(clave, me, eq); });
+      N._meTs = Date.now();
+      return abrirBase(clave, me, eq, prep);
     }).catch(function (e) { N.ses = null; throw e; });
   }
   function desbloquearOffline(correo, clave) {
@@ -129,9 +144,10 @@
     var correo = f.elements.correo.value.trim(), clave = f.elements.clave.value;
     if (!correo || !clave) return fail(f, correo ? 'clave' : 'correo', 'Escribí el correo y la clave.');
     if (Date.now() < fallos.hasta) return fail(f, 'clave', 'Demasiados intentos. Esperá un minuto.');
-    var btn = f.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
+    var btn = f.querySelector('button[type=submit]'), txt0 = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Ingresando…'; }
     N.login(correo, clave).then(function () { g.location.hash = '#/inicio'; render(); }, function (e) {
-      if (btn) btn.disabled = false; fail(f, 'clave', msgLogin(e));
+      if (btn) { btn.disabled = false; btn.innerHTML = txt0; } fail(f, 'clave', msgLogin(e));
     });
   };
   CM.forms['setup'] = function (f) {
