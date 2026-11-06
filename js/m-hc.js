@@ -141,14 +141,24 @@
   };
 
   /* ---------- administración: bandeja ---------- */
-  function perm() { return CM.need('menu', 'edit'); }
-  CM.hcAdmin = function () {
-    var m = CM.db.menu, hcs = m.hcs.slice().sort(function (a, b) { return b.ts.localeCompare(a.ts); }), tus = m.turnos.slice().sort(function (a, b) { return a.fecha.localeCompare(b.fecha); }), cfg = m.draft.hc || {};
+  function perm() { return CM.can('menu', 'edit') || CM.need('pacientes', 'oper'); }
+  CM.solicitudesPendientes = function () {
+    var m = CM.db && CM.db.menu; if (!m) return 0;
+    return (m.hcs || []).filter(function (x) { return x.estado === 'pendiente'; }).length + (m.turnos || []).filter(function (x) { return x.estado === 'solicitado'; }).length;
+  };
+  /* bandeja propia en el menú lateral: «Solicitudes del menú» */
+  CM.VIEWS.solicitudes = function () {
+    var n = CM.solicitudesPendientes();
+    return '<div class="page-h"><div><h1>Solicitudes del menú público</h1><p>Lo que llega desde el menú público: historias clínicas / pedidos de REPROCANN y turnos. ' + (n ? '<b>' + n + ' pendiente(s).</b>' : 'No hay pendientes.') + '</p></div></div>' + CM.hcBandeja();
+  };
+  CM.hcBandeja = function () {
+    var m = CM.db.menu, hcs = m.hcs.slice().sort(function (a, b) { return (a.estado === 'pendiente' ? 0 : 1) - (b.estado === 'pendiente' ? 0 : 1) || b.ts.localeCompare(a.ts); }), tus = m.turnos.slice().sort(function (a, b) { return a.fecha.localeCompare(b.fecha); });
     var th = hcs.length ? '<div class="tw"><table><thead><tr><th>Fecha</th><th>Legajo</th><th>Persona</th><th>Estado</th><th></th></tr></thead><tbody>' + hcs.map(function (x) {
       var p = CM.paciente(x.pac);
-      return '<tr><td>' + esc(CM.fmtFecha(x.ts.slice(0, 10))) + '</td><td><b>' + esc(x.leg) + '</b></td><td>' + esc(U.nombreCorto(x.nombre)) + (x.dup ? '<br><span class="pill p-bad">Documento repetido: revisar duplicado</span>' : '') + '</td><td>' +
-        (x.estado === 'pendiente' ? '<span class="pill p-warn">Pendiente de verificar</span>' : '<span class="pill p-ok">Verificada</span>') + '</td><td><div class="row">' + (p ? '<a class="btn sm" href="#/paciente/' + esc(p.dni) + '">Abrir legajo</a>' : '') +
-        (x.estado === 'pendiente' ? '<button class="btn sm pri" data-act="hc-ok" data-id="' + esc(x.id) + '">Marcar verificada</button>' : '') + '</div></td></tr>';
+      return '<tr><td>' + esc(CM.fmtFecha(x.ts.slice(0, 10))) + '</td><td><b>' + esc(x.leg) + '</b></td><td>' + esc(U.nombreCorto(p ? p.nombre : x.nombre)) + (p ? '<br><small class="hint">' + esc(CM.idTxt(p)) + (p.tel ? ' · ' + esc(p.tel) : '') + '</small>' : '') + (x.dup ? '<br><span class="pill p-bad">Documento repetido: revisar duplicado</span>' : '') + '</td><td>' +
+        (x.estado === 'pendiente' ? '<span class="pill p-warn">Pendiente de verificar</span>' : '<span class="pill p-ok">Aprobada</span>') + '</td><td><div class="row">' +
+        (p ? '<button class="btn sm" data-act="historia" data-dni="' + esc(p.dni) + '">' + CM.icon('edit') + 'Revisar y corregir</button><a class="btn sm" href="#/paciente/' + esc(p.dni) + '">Abrir legajo</a>' : '<span class="hint">La ficha ya no existe</span>') +
+        (x.estado === 'pendiente' ? '<button class="btn sm pri" data-act="hc-ok" data-id="' + esc(x.id) + '">' + CM.icon('check') + 'Aprobar</button>' : '') + '</div></td></tr>';
     }).join('') + '</tbody></table></div>' : '<div class="empty">Todavía no llegaron solicitudes de historia clínica por el menú.</div>';
     var tt = tus.length ? '<div class="tw"><table><thead><tr><th>Día pedido</th><th>Franja</th><th>Motivo</th><th>Persona</th><th>WhatsApp</th><th>Estado</th><th></th></tr></thead><tbody>' + tus.map(function (x) {
       var p = CM.paciente(x.pac);
@@ -156,8 +166,12 @@
         '<td><a href="https://wa.me/549' + esc(x.tel10) + '" target="_blank" rel="noopener noreferrer">' + esc(x.tel10) + '</a></td><td><span class="pill p-' + (x.estado === 'confirmado' ? 'ok' : x.estado === 'rechazado' ? 'bad' : 'warn') + '">' + esc(x.estado) + '</span></td><td><div class="row">' +
         (x.estado === 'solicitado' ? '<button class="btn sm pri" data-act="tu-est" data-id="' + esc(x.id) + '" data-v="confirmado">Confirmar</button><button class="btn sm" data-act="tu-est" data-id="' + esc(x.id) + '" data-v="rechazado">Rechazar</button>' : '') + '</div></td></tr>';
     }).join('') + '</tbody></table></div>' : '<div class="empty">Sin pedidos de turno.</div>';
-    return '<div class="note info">Cada solicitud crea un <b>paciente nuevo con legajo único</b>: nunca pisa una ficha existente. Los datos que cargó la persona quedan <b>sin verificar</b> hasta que el equipo los revise (especialmente el REPROCANN). Cada confirmación de turno se avisa por WhatsApp.</div>' +
-      '<section class="card"><h2>Solicitudes de historia clínica y REPROCANN</h2>' + th + '</section><section class="card" style="margin-top:14px"><h2>Turnero Digital</h2>' + tt + '</section>' +
+    return '<div class="note info">Cada solicitud crea un <b>paciente nuevo con legajo único</b>: nunca pisa una ficha existente. Revisá y corregí los datos con «Revisar y corregir» (especialmente el REPROCANN) y después tocá «Aprobar». Cada confirmación de turno se avisa por WhatsApp.</div>' +
+      '<section class="card"><h2>Solicitudes de historia clínica y REPROCANN</h2>' + th + '</section><section class="card" style="margin-top:14px"><h2>Turnero Digital</h2>' + tt + '</section>';
+  };
+  CM.hcAdmin = function () {
+    var cfg = CM.db.menu.draft.hc || {};
+    return '<div class="note info">Las solicitudes también están en el menú lateral: <a href="#/solicitudes">Solicitudes del menú</a>.</div>' + CM.hcBandeja() +
       '<form class="card f" data-form="mp-hc" novalidate style="margin-top:14px"><h2>Textos de la sección pública</h2><label class="chk"><input type="checkbox" name="tur"' + (cfg.turnero === false ? '' : ' checked') + '><span>Habilitar el pedido de turnos por la web (Turnero Digital)</span></label>' +
       fl('Texto de presentación (español)', '<textarea class="in" name="ies">' + esc((cfg.intro && cfg.intro.es) || '') + '</textarea>') + fl('Texto de presentación (inglés)', '<textarea class="in" name="ien">' + esc((cfg.intro && cfg.intro.en) || '') + '</textarea>') +
       fl('Consentimiento (español) [VERIFICAR con asesor/a legal]', '<textarea class="in" name="ces">' + esc((cfg.consent && cfg.consent.es) || '') + '</textarea>') + fl('Consentimiento (inglés) [VERIFICAR]', '<textarea class="in" name="cen">' + esc((cfg.consent && cfg.consent.en) || '') + '</textarea>') +
@@ -166,7 +180,7 @@
   CM.acts['hc-ok'] = function (t) {
     if (!perm()) return; var x = CM.db.menu.hcs.filter(function (y) { return y.id === t.getAttribute('data-id'); })[0]; if (!x) return;
     x.estado = 'verificada'; var p = CM.paciente(x.pac); if (p) p.revisar = false;
-    CM.audit('Solicitud de historia clínica verificada', 'Legajo ' + x.leg); CM.save(); render();
+    CM.audit('Solicitud de historia clínica aprobada', 'Legajo ' + x.leg); CM.save(); render(); CM.toast('Solicitud aprobada: el legajo ' + x.leg + ' quedó verificado.');
   };
   CM.acts['tu-est'] = function (t) {
     if (!perm()) return; var x = CM.db.menu.turnos.filter(function (y) { return y.id === t.getAttribute('data-id'); })[0]; if (!x) return;

@@ -142,4 +142,18 @@ await t('sin sesión 401; sesión sin miembro 403; CORS sólo al sitio; archivo 
 await t('con claves nuevas de Supabase (sb_secret_…) la clave de servicio va sólo en «apikey»', async () => {
   _limpiarCache(); const r = await run(mundo(), { accion: 'estado' }, env({ SUPABASE_SERVICE_ROLE_KEY: 'sb_secret_x' })); assert.strictEqual(r.st, 200);
 });
+await t('planilla de cultivo: carpeta «Planillas de cultivo», un archivo por contenido (no repite), sin pisar', async () => {
+  _limpiarCache(); const w = mundo();
+  const csv = new TextEncoder().encode('fecha;temp\n2026-10-19;24\n'); const h = Buffer.from(await crypto.subtle.digest('SHA-256', csv)).toString('hex');
+  const pl = (x: any = {}) => ({ accion: 'planilla', ciclo: 'CU-261019-AB12C', cicloNombre: 'Sala 1', nombre: 'CU-261019-AB12C_20261106_v1_' + h.slice(0, 12) + '.csv', version: 1, hash: h, b64: Buffer.from(csv).toString('base64'), ...x });
+  const a = await run(w, pl()); assert.strictEqual(a.st, 200, JSON.stringify(a.j)); assert.ok(a.j.archivo.id && !a.j.repetido);
+  const raiz = w.files.find((f: any) => f.appProperties && f.appProperties.vbongKey === 'cultivo-raiz'); assert.ok(raiz && /^Planillas de cultivo/.test(raiz.name));
+  const cf = w.files.find((f: any) => f.appProperties && f.appProperties.vbongKey === 'cultivo|CU-261019-AB12C'); assert.deepStrictEqual(cf.parents, [raiz.id]);
+  const b2 = await run(w, pl()); assert.ok(b2.j.repetido); assert.strictEqual(w.subidas, 1);
+  assert.strictEqual(w.files.filter((f: any) => f.appProperties && f.appProperties.vbongKey === 'cultivo-raiz').length, 1);
+  assert.strictEqual((await run(w, pl({ hash: 'f'.repeat(64) }))).st, 422);
+  assert.strictEqual((await run(w, pl({ ciclo: "x' or '1" }))).st, 400);
+  assert.strictEqual((await run(w, pl({ nombre: 'algo.exe' }))).st, 422);
+  assert.strictEqual((await run(mundo({ sinConexion: true }), pl())).st, 503);
+});
 console.log('\n' + ok + ' pruebas correctas' + (malas ? ' · ' + malas + ' FALLAS' : '')); if (malas) process.exit(1);

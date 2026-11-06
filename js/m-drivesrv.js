@@ -165,4 +165,54 @@
     try { g.history.replaceState(null, '', g.location.pathname + (g.location.hash || '#/pacientes')); } catch (e) { /* nada */ }
     setTimeout(function () { CM.toast(txt, m[1] !== 'ok'); CM.driveSrvEstado(true).then(render); }, 1500);
   })();
+
+  /* =================================================================
+     Planilla de cultivo por el servidor: con la nube activa se guarda en el mismo Drive de la ONG
+     (carpeta «Planillas de cultivo · ONG»), sin Client ID ni conexión en cada equipo.
+     ================================================================= */
+  var gc0 = CM.driveGuardarCiclo, dh0 = CM.driveHtml, dg0 = CM.acts['drv-guardar'];
+  var ec = { msg: '', bad: false, busy: false };
+  function modoSrv() { return !!(N && N.activa && haySesion()); }
+  function b64utf8(t) { var b = new TextEncoder().encode(t), s = '', i, k = 0x8000; for (i = 0; i < b.length; i += k) s += String.fromCharCode.apply(null, b.subarray(i, i + k)); return g.btoa(s); }
+  CM.driveGuardarCiclo = function (c) {
+    if (!modoSrv()) return gc0 ? gc0(c) : Promise.reject(new Error('Drive no disponible.'));
+    var texto = CM.cultivoCsv(c), hash = CM.sha256(texto), huella = hash.slice(0, 12), drv = c.drive = c.drive || { versiones: [] };
+    var ya = drv.versiones.filter(function (v) { return v.huella === huella; })[0];
+    if (ya) return Promise.resolve({ repetido: true, nombre: ya.nombre });
+    var ver = drv.versiones.length + 1, nombre = CM.cultivoNombreBase(c) + '_' + CM.hoy().replace(/-/g, '') + '_v' + ver + '_' + huella + '.csv';
+    return N._fn('drive-legajos', { accion: 'planilla', ciclo: c.id, cicloNombre: c.nombre, nombre: nombre, version: ver, hash: hash, b64: b64utf8(texto) }).then(function (r) {
+      if (!r || !r.ok || !r.archivo) throw new Error((r && r.error) || 'No se pudo guardar en Drive.');
+      if (r.repetido) return { repetido: true, nombre: r.archivo.nombre };
+      drv.versiones.push({ ver: ver, nombre: r.archivo.nombre, id: r.archivo.id, huella: huella, ts: new Date().toISOString(), user: CM.db.cfg.operador, link: r.archivo.webViewLink || '' });
+      drv.carpetaId = r.carpeta; drv.carpetaUrl = r.carpetaUrl || '';
+      CM.audit('Drive: planilla guardada', c.id + ' · ' + r.archivo.nombre); CM.save();
+      return { nuevo: true, nombre: r.archivo.nombre };
+    }, function (e) {
+      if (e && e.status === 400 && /desconocida/i.test(e.message || '')) throw new Error('Falta actualizar la función del servidor «drive-legajos» (guardado de planillas). Avisale al desarrollador.');
+      throw e;
+    });
+  };
+  CM.driveHtml = function (c) {
+    if (!modoSrv()) return dh0 ? dh0(c) : '';
+    var drv = c.drive || { versiones: [] }, oper = CM.can('cultivo', 'oper');
+    var estado = !S.cargado ? '<span class="pill p-info">Verificando…</span>' : S.conectado ? '<span class="pill p-ok">Conectado' + (S.cuenta ? ' · ' + esc(S.cuenta) : '') + '</span>' : '<span class="pill p-warn">Sin conectar</span>';
+    var vs = drv.versiones.length ? '<div class="tw" style="margin-top:8px"><table><thead><tr><th>Versión</th><th>Archivo en Drive (nombre único)</th><th>Guardado</th><th>Por</th></tr></thead><tbody>' + drv.versiones.slice().reverse().map(function (v) {
+      return '<tr><td>v' + v.ver + '</td><td>' + (v.link && /^https:\/\//.test(v.link) ? '<a href="' + esc(v.link) + '" target="_blank" rel="noopener noreferrer">' + esc(v.nombre) + '</a>' : esc(v.nombre)) + '</td><td>' + esc(CM.fmtFecha(v.ts.slice(0, 10))) + '</td><td>' + esc(v.user) + '</td></tr>';
+    }).join('') + '</tbody></table></div>' : '';
+    return '<div class="card flat" style="margin-top:14px"><div class="row sp"><h3 style="margin:0">' + CM.icon('drive') + ' Google Drive de la ONG</h3>' + estado + '</div>' +
+      '<p class="hint" style="margin:6px 0">Guarda una copia de la planilla en el Drive de la ONG (carpeta «Planillas de cultivo»). Cada guardado crea un <b>archivo nuevo con nombre único</b> (ciclo + fecha + versión + huella): nunca pisa ni duplica. Nadie tiene que conectar nada en este equipo.</p>' +
+      (S.cargado && !S.conectado ? '<div class="note warn">El Drive de la ONG no está conectado: un administrador tiene que tocar «Conectar Google Drive de la ONG» en Pacientes.</div>' : '') +
+      (ec.msg ? '<div class="note ' + (ec.bad ? 'bad' : 'ok') + '" role="status">' + esc(ec.msg) + '</div>' : '') +
+      '<div class="row">' + (oper ? '<button class="btn pri" data-act="drv-guardar" data-id="' + esc(c.id) + '"' + (ec.busy || !S.conectado ? ' disabled' : '') + '>' + CM.icon('up') + 'Guardar en Drive</button>' : '') +
+      (drv.carpetaUrl ? '<a class="btn" href="' + esc(drv.carpetaUrl) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir carpeta del ciclo</a>' : '') +
+      '<a class="btn" href="' + esc(CM.drivePrincipal()) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir Drive de la ONG</a></div>' + vs + '</div>';
+  };
+  CM.acts['drv-guardar'] = function (t) {
+    if (!modoSrv()) return dg0 && dg0(t);
+    var c = CM.cultivo(t.getAttribute('data-id')); if (!c || !CM.need('cultivo', 'oper') || ec.busy) return;
+    ec = { msg: 'Guardando en Drive…', bad: false, busy: true }; render();
+    CM.driveGuardarCiclo(c).then(function (r) {
+      ec = { msg: r.repetido ? 'Esta versión ya estaba guardada en Drive (' + r.nombre + '). No se duplicó nada.' : 'Guardado en Drive como ' + r.nombre + '.', bad: false, busy: false };
+    }).catch(function (e) { ec = { msg: (e && e.message) || 'No se pudo guardar en Drive.', bad: true, busy: false }; }).then(function () { render(); });
+  };
 })(window);

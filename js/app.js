@@ -12,12 +12,13 @@
     ['dashboard', 'Dashboard', 'chart', 'dashboard'], ['caja', 'Caja', 'cash', 'caja'], ['cierre', 'Arqueo y cierre', 'lock', 'cierre'], ['cajas-cerradas', 'Cajas cerradas', 'archive', 'cerradas'],
     ['inventario', 'Inventario', 'box', 'inventario'], ['fidelizacion', 'Fidelización', 'star', 'fidelizacion'], ['personal', 'Personal y fichaje', 'clock', 'personal'], ['tareas', 'Tareas y organigrama', 'tasks', 'tareas'],
     ['-', 'Comunidad'],
+    ['solicitudes', 'Solicitudes del menú', 'chat', 'pacientes'],
     ['menu-publico', 'Menú público', 'globe', 'menu'],
     ['-', 'Sistema'],
     ['nube', 'Nube', 'cloud', 'nube'], ['perifericos', 'Periféricos y ticket', 'plug', 'perifericos'], ['importexport', 'Importar / Exportar', 'swap', 'importexport'], ['integraciones', 'Integraciones', 'link', 'integraciones'],
     ['usuarios', 'Usuarios y permisos', 'key', 'usuarios'], ['auditoria', 'Auditoría', 'doc', 'auditoria'], ['ajustes', 'Configuración', 'gear', 'ajustes']
   ];
-  var TITULOS = CM.TITULOS = { inicio: 'Inicio', pacientes: 'Pacientes', paciente: 'Ficha del paciente', dispensaciones: 'Dispensaciones', aportes: 'Donaciones voluntarias y Factura C', reprocann: 'REPROCANN', trazabilidad: 'Trazabilidad', ajustes: 'Configuración' };
+  var TITULOS = CM.TITULOS = { inicio: 'Inicio', solicitudes: 'Solicitudes del menú', pacientes: 'Pacientes', paciente: 'Ficha del paciente', dispensaciones: 'Dispensaciones', aportes: 'Donaciones voluntarias y Factura C', reprocann: 'REPROCANN', trazabilidad: 'Trazabilidad', ajustes: 'Configuración' };
 
   /* ---------- helpers de vista ---------- */
   function uTxt(u, n) {
@@ -54,7 +55,7 @@
   function yymm() { var h = CM.hoy(); return h.slice(2, 4) + h.slice(5, 7); }
 
   /* ---------- navegación y ruteo ---------- */
-  var MOD_DE_VISTA = { paciente: 'pacientes', 'cajas-cerradas': 'cerradas', 'menu-publico': 'menu' };
+  var MOD_DE_VISTA = { paciente: 'pacientes', 'cajas-cerradas': 'cerradas', 'menu-publico': 'menu', solicitudes: 'pacientes' };
   function modDe(v) { return MOD_DE_VISTA[v] || v; }
   CM.visible = function (n) {
     if (n[3] === 'inicio') return true;
@@ -67,7 +68,8 @@
       if (n[0] === '-') { pend = '<div class="nav-h" aria-hidden="true">' + esc(n[1]) + '</div>'; return; }
       if (!CM.visible(n)) return;
       out += pend; pend = '';
-      out += '<a href="#/' + n[0] + '"' + (n[0] === cur ? ' aria-current="page"' : '') + '>' + CM.icon(n[2]) + '<span>' + esc(n[1]) + '</span></a>';
+      var badge = n[0] === 'solicitudes' && CM.solicitudesPendientes ? CM.solicitudesPendientes() : 0;
+      out += '<a href="#/' + n[0] + '"' + (n[0] === cur ? ' aria-current="page"' : '') + '>' + CM.icon(n[2]) + '<span>' + esc(n[1]) + '</span>' + (badge ? '<span class="nav-badge" aria-label="' + badge + ' pendientes">' + badge + '</span>' : '') + '</a>';
     });
     $('#nav').innerHTML = out;
     var cu = $('#nav a[aria-current="page"]'); if (cu && cu.scrollIntoView) { try { cu.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { /* nada */ } }
@@ -168,8 +170,8 @@
     var al = [];
     if (ong.k !== 'valido' || ong.prox) al.push({ t: ong.k === 'vencido' || ong.k === 'sin' ? 'bad' : 'warn', h: '<a href="#/reprocann">Permiso REPROCANN de la ONG</a>: ' + esc(repDetalle(ong)) });
     var nh = (db.menu && db.menu.hcs || []).filter(function (x) { return x.estado === 'pendiente'; }).length, nt = (db.menu && db.menu.turnos || []).filter(function (x) { return x.estado === 'solicitado'; }).length;
-    if (nh) al.push({ t: 'warn', h: '<a href="#/menu-publico">' + nh + ' solicitud(es) de historia clínica del menú público sin verificar</a>' });
-    if (nt) al.push({ t: 'info', h: '<a href="#/menu-publico">' + nt + ' pedido(s) de turno sin responder</a>' });
+    if (nh) al.push({ t: 'warn', h: '<a href="#/solicitudes">' + nh + ' solicitud(es) de historia clínica del menú público sin verificar</a>' });
+    if (nt) al.push({ t: 'info', h: '<a href="#/solicitudes">' + nt + ' pedido(s) de turno sin responder</a>' });
     pacs.forEach(function (p) {
       var e = CM.estadoRep(p.reprocann);
       if (e.k === 'vencido') al.push({ t: 'bad', h: '<a href="#/paciente/' + esc(p.dni) + '">' + esc(nombreCorto(p.nombre)) + '</a>: REPROCANN vencido. ' + esc(repDetalle(e)) });
@@ -646,14 +648,20 @@
     if (!q) { box.innerHTML = ''; if (!ds) donanteVisible(true); return; }
     if (!p) {
       var m = CM.buscarPacs(q);
-      if (m.length > 1) box.innerHTML = '<span class="hint">Hay ' + m.length + ' coincidencias: escribí el legajo o el documento completo. ' + m.slice(0, 4).map(function (x) { return esc(nombreCorto(x.nombre)) + ' (' + esc(x.leg || x.dni) + ')'; }).join(' · ') + '</span>';
+      if (m.length > 1) box.innerHTML = '<span class="hint">Hay ' + m.length + ' coincidencias: tocá el paciente.</span><div class="pick-pac">' + m.slice(0, 8).map(function (x) {
+          return '<button type="button" class="btn sm" data-act="pick-pac" data-for="' + esc(inp.id) + '" data-v="' + esc(x.leg || x.dni) + '"><b>' + esc(nombreCorto(x.nombre)) + '</b>&nbsp;· ' + esc(CM.idTxt(x)) + '</button>'; }).join('') + (m.length > 8 ? '<span class="hint">… y ' + (m.length - 8) + ' más: escribí más letras.</span>' : '') + '</div>';
       else box.innerHTML = '<span class="hint">' + (ds ? 'No hay un paciente con ese dato. Registralo primero (alcanza con nombre y teléfono; el documento es opcional).' : 'Sin paciente identificado: se registra como donante / consumidor final.') + '</span>';
       if (ds) { $('#dsAvisos').innerHTML = ''; var bb = $('button[form=fDS]'); if (bb) bb.disabled = false; } else donanteVisible(true);
       return;
     }
-    box.innerHTML = '<b>' + esc(p.nombre) + '</b> · ' + esc(CM.idTxt(p)) + ' ' + repPill(CM.estadoRep(p.reprocann));
+    box.innerHTML = '<span class="pac-ok">' + CM.icon('check') + '<b>' + esc(p.nombre) + '</b> · ' + esc(CM.idTxt(p)) + ' ' + repPill(CM.estadoRep(p.reprocann)) + '</span>';
     if (ds) mostrarAvisos(p); else donanteVisible(false);
   }
+  CM.acts['pick-pac'] = function (t) {
+    var inp = $('#' + t.getAttribute('data-for')); if (!inp) return;
+    inp.value = t.getAttribute('data-v'); resolverDni(inp);
+    var sig = $(inp.id === 'dsDni' ? '#dsLote' : '#fAP [name=monto]') || null; if (sig) sig.focus();
+  };
   function donanteVisible(v) { var b = $('#apDonante'); if (b) b.hidden = !v; }
   function mostrarAvisos(p) {
     var r = CM.reglasDispensar(p);

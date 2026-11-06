@@ -11,6 +11,8 @@
 //   { accion: 'desconectar' }                    → admin: revoca y borra el permiso
 //   { accion: 'carpeta', legajo, dni }           → crea o reutiliza Legajos/{legajo}_{DNI|SD}
 //   { accion: 'subir', legajo, dni, nombre, mime, tipo, version, hash, b64 } → sube a la carpeta del legajo
+//   { accion: 'planilla', ciclo, cicloNombre, nombre, version, hash, b64 }  → sube la planilla de cultivo (CSV)
+//        a «Planillas de cultivo · ONG / {ciclo} · {nombre}»; nunca pisa: archivo nuevo por versión, mismo contenido = no repite
 // GET ?code&state (vuelta desde Google): guarda el permiso y vuelve al sistema.
 // Secretos: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, ALLOWED_ORIGINS, SITE_URL
 //           (SUPABASE_URL, SUPABASE_ANON_KEY y SUPABASE_SERVICE_ROLE_KEY los provee Supabase).
@@ -29,6 +31,8 @@ const MIMES: Record<string, string> = { 'application/pdf': 'pdf', 'image/jpeg': 
 const ROLES = ['admin', 'supervisor', 'mostrador', 'operador'];
 const RE_LEG = /^L-\d{6}-[2-9A-HJKMNP-Z]{6}$/;
 const RE_ID = /^[A-Za-z0-9_-]{10,120}$/;
+const RE_CICLO = /^CU-[A-Z0-9-]{4,24}$/;
+const MAX_CSV = 5 * 1024 * 1024;
 
 class Falla extends Error { status: number; codigo: string; constructor(status: number, codigo: string, msg: string) { super(msg); this.status = status; this.codigo = codigo; } }
 
@@ -109,6 +113,35 @@ async function carpetaPaciente(d: Deps, at: string, raiz: string, legajo: string
   return { id: f.id as string, url: (f.webViewLink || 'https://drive.google.com/drive/folders/' + f.id) as string, creada: true };
 }
 
+async function carpetaPorClave(d: Deps, at: string, clave: string, nombre: string, parent?: string) {
+  const ya = await buscar(d, at, `mimeType = ${q(CARPETA)} and appProperties has { key='vbongKey' and value=${q(clave)} } and trashed = false`);
+  if (ya.length) return { id: ya[0].id as string, url: (ya[0].webViewLink || 'https://drive.google.com/drive/folders/' + ya[0].id) as string };
+  const f: any = await g(d, at, `${DRIVE}?fields=id,webViewLink`, { method: 'POST', json: { name: nombre, mimeType: CARPETA, ...(parent ? { parents: [parent] } : {}), appProperties: { vbong: '1', vbongKey: clave } } });
+  return { id: f.id as string, url: (f.webViewLink || 'https://drive.google.com/drive/folders/' + f.id) as string };
+}
+async function subirPlanilla(d: Deps, at: string, b: any, nombreOng: string) {
+  const ciclo = String(b.ciclo || '');
+  if (!RE_CICLO.test(ciclo)) throw new Falla(400, 'datos', 'Ciclo inválido.');
+  let bytes: Uint8Array; try { bytes = deB64u(String(b.b64 || '').replace(/\+/g, '-').replace(/\//g, '_')); } catch { throw new Falla(422, 'datos', 'Planilla ilegible.'); }
+  if (!bytes.length || bytes.length > MAX_CSV) throw new Falla(413, 'datos', 'La planilla está vacía o supera los 5 MB.');
+  const hash = hex(await crypto.subtle.digest('SHA-256', bytes));
+  if (b.hash && b.hash !== hash) throw new Falla(422, 'datos', 'La planilla llegó distinta de como salió del equipo: no se guardó.');
+  const nombre = limpio(b.nombre, 140);
+  if (!/\.csv$/i.test(nombre)) throw new Falla(422, 'datos', 'Nombre de archivo inválido.');
+  const raiz = await carpetaPorClave(d, at, 'cultivo-raiz', 'Planillas de cultivo · ' + limpio(nombreOng || 'ONG', 60));
+  const cf = await carpetaPorClave(d, at, 'cultivo|' + ciclo, limpio(ciclo + ' · ' + String(b.cicloNombre || ''), 120), raiz.id);
+  const ya = await buscar(d, at, `${q(cf.id)} in parents and appProperties has { key='vbongHash' and value=${q(hash)} } and trashed = false`);
+  let f: any = ya[0];
+  if (!f) {
+    const bnd = '----vbong' + hash.slice(0, 16);
+    const meta = JSON.stringify({ name: nombre, parents: [cf.id], mimeType: 'text/csv', appProperties: { vbong: '1', vbongHash: hash, vbongCiclo: ciclo, vbongVersion: String(Number(b.version) || 1) } });
+    const a = te.encode(`--${bnd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${bnd}\r\nContent-Type: text/csv; charset=UTF-8\r\n\r\n`), z = te.encode(`\r\n--${bnd}--`);
+    const cuerpo = new Uint8Array(a.length + bytes.length + z.length); cuerpo.set(a, 0); cuerpo.set(bytes, a.length); cuerpo.set(z, a.length + bytes.length);
+    f = await g(d, at, `${UPLOAD}?uploadType=multipart&fields=id,name,webViewLink`, { method: 'POST', body: cuerpo, headers: { 'content-type': 'multipart/related; boundary=' + bnd } });
+  }
+  return { ok: true, carpeta: cf.id, carpetaUrl: cf.url, archivo: { id: f.id, nombre: f.name || nombre, webViewLink: f.webViewLink || 'https://drive.google.com/file/d/' + f.id + '/view' }, repetido: !!ya.length, hash };
+}
+
 /* ---------- HTTP ---------- */
 function cors(origen: string | null, env: Env) {
   const ok = (env('ALLOWED_ORIGINS') || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -180,6 +213,11 @@ export async function manejar(req: Request, d: Deps): Promise<Response> {
       if (con && con.token) await d.fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(con.token), { method: 'POST' }).catch(() => null);
       await B.rpc('drive_borrar', { p_tenant: tenant, p_uid: uid }); cacheTok.delete(tenant);
       return json({ ok: true }, 200, h);
+    }
+    if (b.accion === 'planilla') {
+      if (!configurado || !con || !con.token) return json({ ok: false, error: 'Google Drive de la ONG sin conectar: un administrador tiene que conectarlo una vez.', codigo: 'sin_conectar' }, 503, h);
+      const at0 = await tokenAcceso(d, tenant, con.token);
+      return json(await subirPlanilla(d, at0, b, me.tenant.nombre), 200, h);
     }
     if (b.accion !== 'carpeta' && b.accion !== 'subir') return json({ ok: false, error: 'Acción desconocida.' }, 400, h);
     if (!RE_LEG.test(String(b.legajo || ''))) return json({ ok: false, error: 'Legajo inválido.' }, 400, h);
