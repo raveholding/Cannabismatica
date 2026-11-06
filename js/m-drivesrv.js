@@ -115,6 +115,23 @@
   };
 
   /* tarjeta en Pacientes (debajo del resumen de legajos) */
+  /* carpeta principal de la ONG en Drive (la de AppSheet: data › Cannabismatica). Se puede cambiar en la tarjeta (administración). */
+  var PRINCIPAL_DEF = 'https://drive.google.com/drive/folders/1kWh3o1lPdFarEbX9VUDNcox6zMjjbVIj';
+  CM.drivePrincipal = function () {
+    var u = CM.db && CM.db.ong && CM.db.ong.drivePrincipal;
+    return u && /^https:\/\/drive\.google\.com\//.test(u) ? u : PRINCIPAL_DEF;
+  };
+  CM.acts['drive-principal-editar'] = function () {
+    if (!CM.need('pacientes', 'admin')) return;
+    CM.modal.open({ title: 'Carpeta principal de la ONG', body: '<form id="fDP" data-form="drive-principal" class="f" novalidate>' + CM.U.fl('Enlace de la carpeta principal en Google Drive', '<input class="in" name="url" inputmode="url" value="' + esc(CM.drivePrincipal()) + '">') + '<p class="hint">Es la carpeta que abre el botón «Abrir Drive de la ONG». Copiá el enlace desde Drive (Compartir › Copiar enlace).</p><p class="err" role="alert" data-err></p></form>',
+      footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fDP">Guardar</button>' });
+  };
+  CM.forms['drive-principal'] = function (f) {
+    var u = f.elements.url.value.trim();
+    if (!/^https:\/\/drive\.google\.com\/(drive\/(u\/\d+\/)?folders\/|drive\/my-drive)/.test(u)) return CM.U.fail(f, 'url', 'Pegá el enlace de una carpeta de Google Drive (https://drive.google.com/drive/folders/…).');
+    CM.db.ong.drivePrincipal = u.split('?')[0]; CM.audit('Carpeta principal de Drive', u.split('?')[0]); CM.save(); CM.modal.close(true); render(); CM.toast('Carpeta principal guardada.');
+    return false;
+  };
   CM.driveSrvHtml = function () {
     if (!haySesion()) return '';
     var admin = CM.can('pacientes', 'admin');
@@ -125,8 +142,10 @@
     if (S.conectado) {
       h += '<p class="hint" style="margin:8px 0">Las carpetas de los legajos y los documentos se guardan solos desde cualquier equipo. Nadie tiene que conectar nada.</p>' +
         (S.msg ? '<div class="note ' + (S.bad ? 'bad' : 'ok') + '" role="status">' + esc(S.msg) + '</div>' : '') +
-        '<div class="row">' + (S.raiz ? '<a class="btn" href="' + esc(S.raiz) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir la carpeta de legajos</a>' : '') +
-        (admin ? '<button class="btn sm" data-act="drive-srv-desconectar">Desconectar</button>' : '') + '</div>';
+        '<div class="row"><a class="btn pri" href="' + esc(CM.drivePrincipal()) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir Drive de la ONG</a>' +
+        (S.raiz ? '<a class="btn" href="' + esc(S.raiz) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Carpeta de legajos</a>' : '') +
+        (admin ? '<button class="btn sm" data-act="drive-principal-editar">Cambiar carpeta principal</button><button class="btn sm" data-act="drive-srv-desconectar">Desconectar</button>' : '') + '</div>' +
+        (admin && S.raiz ? '<p class="hint" style="margin:8px 0 0">Para que los legajos queden dentro de la carpeta principal, en Drive arrastrá una sola vez la carpeta «Legajos · …» adentro de «Cannabismatica». El sistema la sigue usando igual.</p>' : '');
     } else if (!S.configurado) {
       h += '<p class="hint" style="margin:8px 0">Falta terminar la configuración de Google en el servidor (credenciales de la ONG). Mientras tanto los documentos quedan guardados en cada equipo como «pendientes de subir».</p>';
     } else {

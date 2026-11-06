@@ -330,9 +330,9 @@
     var meses = {}; meses[CM.mesActual()] = 1; db.aportes.forEach(function (a) { meses[a.fecha.slice(0, 7)] = 1; });
     var ml = Object.keys(meses).sort().reverse();
     var flt = ($('#apFlt') && $('#apFlt').value) || '';
-    var arr = db.aportes.filter(function (a) { return (mes === 'todos' || a.fecha.slice(0, 7) === mes) && (!flt || (flt === 'sinfc' ? (!a.comp && a.estado === 'registrado') : a.estado === flt)); }).sort(function (a, b) { return b.ts.localeCompare(a.ts); });
+    var arr = db.aportes.filter(function (a) { return (mes === 'todos' || a.fecha.slice(0, 7) === mes) && (!flt || (flt === 'sinfc' ? (!a.comp && !a.mig && a.estado === 'registrado') : a.estado === flt)); }).sort(function (a, b) { return b.ts.localeCompare(a.ts); });
     var tot = arr.filter(function (a) { return a.estado === 'registrado'; }).reduce(function (s, a) { return s + a.cent; }, 0);
-    var sinFc = db.aportes.filter(function (a) { return !a.comp && a.estado === 'registrado'; }).length;
+    var sinFc = db.aportes.filter(function (a) { return !a.comp && !a.mig && a.estado === 'registrado'; }).length;   // las históricas de AppSheet no piden Factura C
     var comps = db.comps.slice().sort(function (a, b) { return b.id.localeCompare(a.id); });
     return '<div class="page-h"><div><h1>Donaciones voluntarias y Factura C</h1><p>Registro de contribuciones de los pacientes. El módulo de Factura C ante ARCA es una <b>simulación</b>: no se envía nada a ARCA ni se obtiene CAE real.</p></div><button class="btn pri" data-act="aporte" data-dni="">' + CM.icon('plus') + 'Registrar donación</button></div>' +
       '<div class="note info" style="margin-bottom:14px">Para emitir con CAE real hace falta el certificado digital de la ONG y la conexión con los servicios de ARCA (WSAA/WSFE) <b>[VERIFICAR con el contador y en arca.gob.ar]</b>. Esa etapa no está incluida en esta versión.</div>' +
@@ -770,9 +770,9 @@
     if (!d || d.anulada) return;
     if (motivo.length < 5) return fail(f, 'motivo', 'Escribí el motivo (mínimo 5 letras).');
     d.anulada = { ts: new Date().toISOString(), motivo: motivo, user: CM.db.cfg.operador };
-    CM.addMov(d.lote, 'anulacion', d.cant, id, motivo);
+    if (!d.mig) CM.addMov(d.lote, 'anulacion', d.cant, id, motivo);   // las migradas de AppSheet no descontaron stock
     CM.audit('Anulación de dispensación', id + ' · ' + motivo);
-    CM.save(); CM.modal.close(true); render(); CM.toast('Dispensación anulada. El lote recuperó la cantidad.');
+    CM.save(); CM.modal.close(true); render(); CM.toast(d.mig ? 'Dispensación anulada (era del historial de AppSheet: no mueve stock).' : 'Dispensación anulada. El lote recuperó la cantidad.');
   };
 
   /* ---------- etiqueta con QR al formulario de seguimiento ---------- */

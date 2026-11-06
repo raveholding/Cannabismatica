@@ -170,7 +170,7 @@
   function aportesDeCaja(caja) {
     var cerrados = {};
     CM.db.cajas.forEach(function (c) { if (c.estado === 'cerrada' && c.cierre) c.cierre.movs.forEach(function (m) { if (m.ref) cerrados[m.ref] = 1; }); });
-    return CM.db.aportes.filter(function (a) { return a.estado === 'registrado' && a.fecha >= caja.fecha && !cerrados[a.id]; }).map(function (a) {
+    return CM.db.aportes.filter(function (a) { return a.estado === 'registrado' && !a.mig && a.fecha >= caja.fecha && !cerrados[a.id]; }).map(function (a) {
       return { id: 'AP-' + a.id, ts: a.ts, tipo: 'ingreso', cent: a.cent, medio: a.medio, rubroId: 'R-01', rubroN: 'Donaciones voluntarias', motivo: a.concepto + ' · ' + (a.dni ? 'Legajo ' + CM.legDe(a.dni) : 'donante sin identificar'), user: a.user, ref: a.id, derivado: true, fc: !!a.comp };
     });
   }
@@ -226,7 +226,7 @@
     CM.db.cajas.forEach(function (c) { if (c.cierre) c.cierre.movs.forEach(function (m) { if (m.ref) enCierres[m.ref] = 1; }); });
     var dias = {};
     CM.db.aportes.forEach(function (a) {
-      if (a.estado !== 'registrado' || enCierres[a.id]) return;
+      if (a.estado !== 'registrado' || a.mig || enCierres[a.id]) return;
       if (ab && a.fecha >= ab.fecha) return;
       dias[a.fecha] = (dias[a.fecha] || 0) + a.cent;
     });

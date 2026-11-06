@@ -112,7 +112,7 @@
     if (u) {
       h += '<div class="row" style="margin-top:10px"><a class="btn pri" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir carpeta del legajo</a><button class="btn sm" data-act="copiar" data-v="' + esc(u) + '">' + CM.icon('copy') + 'Copiar enlace</button></div>';
     } else if (p.drive1 === EJEMPLO) {
-      h += '<div class="row" style="margin-top:10px"><a class="btn pri" href="' + esc(EJEMPLO) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir Drive (enlace genérico)</a></div><p class="hint">Este enlace no es la carpeta propia del paciente: creala o vinculala para que sus documentos queden juntos.</p>';
+      h += '<div class="row" style="margin-top:10px"><a class="btn pri" href="' + esc(CM.drivePrincipal ? CM.drivePrincipal() : EJEMPLO) + '" target="_blank" rel="noopener noreferrer">' + CM.icon('link') + 'Abrir Drive de la ONG</a></div><p class="hint">Este enlace no es la carpeta propia del paciente: creala o vinculala para que sus documentos queden juntos.</p>';
     } else {
       h += '<div class="note ' + (modo === 'servidor' ? 'info' : 'warn') + '" style="margin-top:10px">' + (modo === 'servidor' ? 'La carpeta se crea sola en el Drive de la ONG en el próximo minuto.' : 'Todavía no tiene carpeta.') + '</div>' +
         (oper ? '<div class="row"><button class="btn pri" data-act="' + (modo === 'servidor' ? 'drive-crear-srv' : 'drive-crear') + '" data-dni="' + esc(p.dni) + '">' + CM.icon('plus') + (modo === 'servidor' ? 'Crear carpeta ahora' : 'Crear carpeta del legajo') + '</button></div>' : '') +
