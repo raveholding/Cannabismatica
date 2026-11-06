@@ -60,8 +60,21 @@
       '<a class="vb-hit vb-ml" href="mailto:' + D.mail + '" aria-label="Correo ' + D.mail + '"></a></div>' +
       '<div class="dev-btns"><a class="dev-btn" href="' + wa + '" target="_blank" rel="noopener noreferrer">WhatsApp</a><a class="dev-btn" href="tel:+' + D.wa + '">Llamar</a><a class="dev-btn" href="mailto:' + D.mail + '">Correo</a></div>';
   };
-  function pintarCreditos() { var e = document.getElementById('credits'); if (e && !e.querySelector('.vb-banner')) e.insertAdjacentHTML('beforeend', CM.devBanner('consulto por el sistema de la ONG')); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pintarCreditos); else pintarCreditos();
+  /* datos del desarrollador: sólo debajo de «Configuración» (menú lateral) y dentro de esa pantalla */
+  CM.devFirma = function () {
+    var D = CM.DEV;
+    return '<div class="dev-firma"><small>Desarrollado por</small><b>' + D.nombre + '</b><i>“' + D.lema + '”</i>' +
+      '<a href="https://wa.me/' + D.wa + '?text=' + encodeURIComponent('Hola ' + D.nombre + ', consulto por el sistema de la ONG') + '" target="_blank" rel="noopener noreferrer">Único celular ' + D.tel + '</a>' +
+      '<a href="mailto:' + D.mail + '">' + D.mail + '</a></div>';
+  };
+  /* en la pantalla Configuración (sirve también en el celular, donde el menú lateral es una barra) */
+  CM.afterRender = (function (prev) { return function (r) { if (prev) prev(r); firmaAjustes(); }; })(CM.afterRender);
+  function firmaAjustes() {
+    var m = document.getElementById('main');
+    if (!m || !/^#\/ajustes/.test(g.location.hash) || m.querySelector('.dev-card')) return;
+    m.insertAdjacentHTML('beforeend', '<section class="card dev-card" style="margin-top:14px">' + CM.devFirma() + '</section>');
+  }
+  CM.firmaAjustes = firmaAjustes;
   CM.icon = function (n) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[n] || '') + '</svg>'; };
 
   /* ---------- avisos ---------- */

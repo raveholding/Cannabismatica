@@ -240,3 +240,13 @@ textarea.in.tall{min-height:160px}
 .pac-ok{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;padding:6px 10px;border-radius:10px;background:var(--okbg,#e9f7e4);color:var(--tx,#101410)}
 .pac-ok .i{width:16px;height:16px;color:var(--ok,#2c8a3c)}
 .nav-badge{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#d9534f;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+/* firma del desarrollador (debajo de «Configuración») */
+.dev-firma{display:flex;flex-direction:column;gap:2px;padding:14px 14px 8px;line-height:1.35}
+.dev-firma small{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--mu)}
+.dev-firma b{font-size:15px;letter-spacing:.3px;color:var(--tx)}
+.dev-firma i{color:var(--mu);font-size:13px;margin-bottom:10px}
+.dev-firma a{color:#E3A92B !important;font-weight:600;font-size:13px;white-space:nowrap;text-decoration:none;padding:4px 0;min-height:32px;display:flex;align-items:center}
+.dev-firma a:hover{text-decoration:underline}
+.dev-card .dev-firma{padding:4px 2px}
+.dev-card .dev-firma a{color:#B57F0E !important}
+@media (max-width:899px){.nav .dev-firma{display:none}}

@@ -71,6 +71,7 @@
       var badge = n[0] === 'solicitudes' && CM.solicitudesPendientes ? CM.solicitudesPendientes() : 0;
       out += '<a href="#/' + n[0] + '"' + (n[0] === cur ? ' aria-current="page"' : '') + '>' + CM.icon(n[2]) + '<span>' + esc(n[1]) + '</span>' + (badge ? '<span class="nav-badge" aria-label="' + badge + ' pendientes">' + badge + '</span>' : '') + '</a>';
     });
+    if (/href="#\/ajustes"/.test(out) && CM.devFirma) out += CM.devFirma();
     $('#nav').innerHTML = out;
     var cu = $('#nav a[aria-current="page"]'); if (cu && cu.scrollIntoView) { try { cu.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { /* nada */ } }
   }
