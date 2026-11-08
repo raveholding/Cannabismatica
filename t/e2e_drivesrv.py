@@ -6,7 +6,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); os.chdir(RAI
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
-U = 'http://127.0.0.1:%d/index.html' % srv.server_address[1]
+U = 'http://127.0.0.1:%d/dev.html' % srv.server_address[1]
 oks, fallas = [0], []
 def chk(c, n):
     if c: oks[0] += 1; print('ok  ' + n)
@@ -68,7 +68,7 @@ with sync_playwright() as pw:
     chk(p.evaluate("CM.driveModo()") != 'servidor', 'sin conectar no finge modo servidor')
     chk(not errs, 'consola sin errores ' + ' | '.join(errs[:2])); p.close()
     # 4) vuelta de Google: aviso y URL limpia
-    p, errs = pagina(True); p.goto(U.replace('index.html', 'index.html?drive=ok') + '#/pacientes'); p.wait_for_timeout(2200)
+    p, errs = pagina(True); p.goto(U.replace('dev.html', 'dev.html?drive=ok') + '#/pacientes'); p.wait_for_timeout(2200)
     chk('drive=' not in p.url and p.locator('text=Google Drive de la ONG conectado').count() >= 1, 'vuelta de Google: aviso y dirección limpia')
     p.close(); b.close()
 print('\n%d correctas, %d fallas' % (oks[0], len(fallas))); sys.exit(1 if fallas else 0)

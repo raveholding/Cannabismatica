@@ -6,7 +6,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); os.chdir(RAI
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
-U = 'http://127.0.0.1:%d/index.html' % srv.server_address[1]
+U = 'http://127.0.0.1:%d/dev.html' % srv.server_address[1]
 oks, fallas = [0], []
 def chk(c, n):
     if c: oks[0] += 1; print('ok  ' + n)

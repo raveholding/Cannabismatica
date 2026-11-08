@@ -4,7 +4,7 @@ ROOT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(os.
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 s = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=s.serve_forever, daemon=True).start()
-U = 'http://127.0.0.1:%d/index.html' % s.server_address[1]
+U = 'http://127.0.0.1:%d/dev.html' % s.server_address[1]
 oks, fallas, red = [0], [], []
 def chk(c, n):
     if c: oks[0] += 1; print('ok  ' + n)

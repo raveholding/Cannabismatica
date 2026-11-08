@@ -115,3 +115,8 @@ Desarrollado por **VINCULAR BUSINESS** · «Tu idea, en buenas manos.» · Whats
 - La hoja guarda sólo identificación, estado de los formularios («Completo / Sin completar», con lo que falta) y el enlace a la carpeta. **No se copian datos clínicos.**
 - En *Pacientes* se puede filtrar por «Formularios sin completar» y «Sin carpeta en Drive»; cada ficha muestra el estado de sus formularios.
 - Pendiente: creación 100 % sin intervención (sin que nadie abra el sistema) requiere una cuenta de servicio de Google y un proceso en el servidor.
+
+## Carga más rápida (2026-11-08)
+- `index.html` ahora se **genera** con `python3 tools/build.py` a partir de `dev.html` (la fuente, un archivo por módulo): un solo JS minificado (`js/app.min.js`, 25 archivos → 1, ~190 KB comprimido) y un solo CSS (`css/app.min.css`), con el nombre versionado por su contenido. **Editar siempre `dev.html` y los módulos de `js/`, y volver a correr el armado antes de publicar.**
+- `sw.js` (service worker, sólo en el sitio publicado): la segunda vez el sistema abre desde el equipo; la página y `config.js` se piden primero a la red (si tarda más de 4 s se usa lo guardado); nunca toca pedidos a Supabase ni a Google.
+- Pruebas: las de módulos usan `dev.html`; `t/_bundle_smoke.py` (55) prueba el armado y `t/_sw_check.py` el service worker (también sin red).
