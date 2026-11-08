@@ -23,9 +23,14 @@
   function aportesDeCaja(caja) {
     var cerrados = {};
     CM.db.cajas.forEach(function (c) { if (c.estado === 'cerrada' && c.cierre) c.cierre.movs.forEach(function (m) { if (m.ref) cerrados[m.ref] = 1; }); });
-    return CM.db.aportes.filter(function (a) { return a.estado === 'registrado' && !a.mig && a.fecha >= caja.fecha && !cerrados[a.id] && (a.eq == null || a.eq === caja.nro); }).map(function (a) {
-      return { id: 'AP-' + a.id, ts: a.ts, tipo: 'ingreso', cent: a.cent, medio: a.medio, rubroId: 'R-01', rubroN: 'Donaciones voluntarias', motivo: a.concepto + ' · ' + (a.dni ? 'Legajo ' + CM.legDe(a.dni) : 'donante sin identificar'), user: a.user, ref: a.id, derivado: true, fc: !!a.comp };
+    var out = [];
+    CM.db.aportes.filter(function (a) { return a.estado === 'registrado' && !a.mig && a.fecha >= caja.fecha && !cerrados[a.id] && (a.eq == null || a.eq === caja.nro); }).forEach(function (a) {
+      var partes = CM.partesAporte(a);   /* una donación mixta entra a la caja como un movimiento por medio */
+      partes.forEach(function (x, i) {
+        out.push({ id: 'AP-' + a.id + (partes.length > 1 ? '-' + (i + 1) : ''), ts: a.ts, tipo: 'ingreso', cent: x.a, medio: x.m, rubroId: 'R-01', rubroN: 'Donaciones voluntarias', motivo: a.concepto + (partes.length > 1 ? ' (mixta ' + (i + 1) + '/' + partes.length + ')' : '') + ' · ' + (a.dni ? 'Legajo ' + CM.legDe(a.dni) : 'donante sin identificar'), user: a.user, ref: a.id, derivado: true, fc: !!a.comp });
+      });
     });
+    return out;
   }
   CM.cajaMovs = function (caja) {
     if (caja.estado === 'cerrada' && caja.cierre) return caja.cierre.movs;
@@ -171,7 +176,7 @@
     var cfg = CM.db.menu.pub, ya = CM.usuarioActual && CM.usuarioActual();
     if (ya) return '<div class="pubpage"><div class="card login"><h1>Ya ingresaste</h1><p>Sesión de <b>' + esc(ya.nombre) + '</b> (' + esc(CM.ROLES[ya.rol]) + ').</p><div class="row"><a class="btn pri" href="#/inicio">Ir al sistema</a><button class="btn" data-act="salir">Salir</button></div></div></div>';
     var logo = '<div style="text-align:center"><img src="assets/logo.png" alt="Cannabismatica" style="max-width:220px;height:auto"></div>';
-    var pie = '<p class="hint" style="margin-top:12px">Desarrollado por <b>VINCULAR BUSINESS</b> · <a href="https://wa.me/5493874484132?text=' + encodeURIComponent('Hola VINCULAR BUSINESS, necesito ayuda para ingresar al sistema de Cannabismatica') + '" target="_blank" rel="noopener noreferrer">Necesito ayuda</a></p>';
+    var pie = '<p class="hint" style="margin-top:12px">¿Olvidaste tu clave? Pedila a la administración del sistema.</p><p class="hint">Desarrollado por <b>VINCULAR BUSINESS</b> · <i>Tu idea, en buenas manos.</i></p>';
     if (N.needSetup) {
       return '<div class="pubpage"><div class="card login">' + logo + '<h1>Primera configuración</h1><p class="hint">Es la primera vez que se usa el sistema. Con el <b>código de configuración</b> que te dio VINCULAR BUSINESS creás la cuenta de administración. El código sirve una sola vez.</p>' +
         '<form data-form="setup" class="f" autocomplete="off" novalidate>' + fl('Código de configuración *', '<input class="in" name="cod" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX">') +

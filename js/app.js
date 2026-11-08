@@ -320,35 +320,94 @@
   function kv(l, v) { return '<div><small>' + esc(l) + '</small><b>' + (v ? esc(v) : '<span style="color:var(--mu)">—</span>') + '</b></div>'; }
 
   /* ---------- aportes ---------- */
+  /* ¿la donación ya quedó dentro de un cierre de caja sellado? (entonces no se edita: el cierre no cambia) */
+  CM.aporteEnCierre = function (id) {
+    return CM.db.cajas.some(function (c) { return c.estado === 'cerrada' && c.cierre && c.cierre.movs.some(function (m) { return m.ref === id; }); });
+  };
+  function apAdmin() { return CM.can('aportes', 'admin'); }
   function filaDonacion(a, sinPac) {
     var c = a.comp ? CM.comp(a.comp) : null;
     var cell;
     if (a.estado === 'anulado') cell = '<span class="pill p-bad">Anulado</span>';
+    else if (a.estado === 'quitada') cell = '<span class="pill p-mu" title="' + esc((a.quitada && a.quitada.motivo) || '') + '">Quitada</span>';
     else if (c && c.anulado) cell = '<span class="pill p-bad">Factura C anulada</span>';
     else if (c) cell = '<button class="btn sm" data-act="ver-comp" data-id="' + esc(c.id) + '">' + CM.icon('doc') + 'Factura C ' + esc(c.pv + '-' + c.nro) + '</button>';
-    else cell = '<button class="btn sm pri" data-act="emitir-fc" data-id="' + esc(a.id) + '">Emitir Factura C (simulada)</button>';
-    return '<tr' + (a.estado === 'anulado' ? ' class="anulada"' : '') + '><td>' + esc(a.id) + '</td><td>' + CM.fmtFecha(a.fecha) + '</td>' + (sinPac ? '' : '<td>' + (quienDe(a).pac ? '<a href="#/paciente/' + esc(a.dni) + '">' + esc(nombreCorto(quienDe(a).nom)) + '</a>' : esc(quienDe(a).nom)) + '<br><small class="hint">' + esc(quienDe(a).doc) + '</small></td>') +
-      '<td>' + esc(a.concepto) + '</td><td>' + esc(CM.medioTxt(a)) + '</td><td class="n">' + esc(CM.fmtMoney(a.cent)) + '</td><td>' + cell + '</td></tr>';
+    else if (fcSim()) cell = '<button class="btn sm pri" data-act="emitir-fc" data-id="' + esc(a.id) + '">Emitir Factura C (simulada)</button>';
+    else cell = a.mig ? '<span class="pill p-mu">Sistema anterior</span>' : '<span class="hint">—</span>';
+    var acc = '';
+    if (apAdmin()) {
+      if (a.estado === 'registrado' && !a.comp && !CM.aporteEnCierre(a.id)) acc = '<button class="btn sm" data-act="ap-editar" data-id="' + esc(a.id) + '">Editar</button><button class="btn sm bad" data-act="ap-quitar" data-id="' + esc(a.id) + '">Quitar</button>';
+      else if (a.estado === 'quitada') acc = '<button class="btn sm" data-act="ap-restaurar" data-id="' + esc(a.id) + '">Restaurar</button>';
+    }
+    return '<tr' + (a.estado === 'anulado' || a.estado === 'quitada' ? ' class="anulada"' : '') + '><td>' + esc(a.id) + '</td><td>' + CM.fmtFecha(a.fecha) + '</td>' + (sinPac ? '' : '<td>' + (quienDe(a).pac ? '<a href="#/paciente/' + esc(a.dni) + '">' + esc(nombreCorto(quienDe(a).nom)) + '</a>' : esc(quienDe(a).nom)) + '<br><small class="hint">' + esc(quienDe(a).doc) + '</small></td>') +
+      '<td>' + esc(a.concepto) + '</td><td>' + esc(CM.medioTxt(a)) + '</td><td class="n">' + esc(CM.fmtMoney(a.cent)) + '</td><td><div class="row">' + cell + acc + '</div></td></tr>';
   }
+  function apPorId(id) { return CM.db.aportes.filter(function (x) { return x.id === id; })[0]; }
+  CM.acts['ap-editar'] = function (t) {
+    var a = apPorId(t.getAttribute('data-id')); if (!a || !apAdmin()) return;
+    if (a.estado !== 'registrado' || a.comp || CM.aporteEnCierre(a.id)) return CM.toast('Esta donación ya está en una caja cerrada o tiene comprobante: no se edita.', true);
+    CM.modal.open({ title: 'Editar donación ' + a.id, body: '<form id="fAPE" data-form="ap-editar" class="f" autocomplete="off" novalidate><input type="hidden" name="id" value="' + esc(a.id) + '"><p class="hint" style="margin:0">' + CM.fmtFecha(a.fecha) + ' · ' + esc(quienDe(a).nom) + '</p>' +
+      '<div class="f f2">' + fl('Concepto', '<select class="in" name="concepto">' + CM.CONCEPTOS.map(function (c) { return opt(c, c, c === a.concepto); }).join('') + '</select>') + fl('Medio', medioSelect(a.pays && a.pays.length > 1 ? 'mixto' : a.medio)) + '</div>' +
+      fl('Importe (en pesos) *', '<input class="in num" name="importe" inputmode="decimal" value="' + esc(String(a.cent / 100).replace('.', ',')) + '">') + mixtoHtml(a.pays) +
+      fl('Observación', '<input class="in" name="obs" value="' + esc(a.obs || '') + '">') + fl('Motivo del cambio *', '<input class="in" name="motivo" placeholder="Ej.: era transferencia, no efectivo">') + '<p class="err" role="alert" data-err></p></form>',
+      footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fAPE">Guardar cambios</button>' });
+  };
+  CM.forms['ap-editar'] = function (f) {
+    var e = f.elements, a = apPorId(e.id.value); if (!a || !apAdmin()) return;
+    if (a.estado !== 'registrado' || a.comp || CM.aporteEnCierre(a.id)) return fail(f, 'motivo', 'Esta donación ya no se puede editar.');
+    var cent = CM.parseMonto(e.importe.value);
+    if (isNaN(cent) || cent <= 0) return fail(f, 'importe', 'Escribí un importe mayor que cero.');
+    var mixA = null;
+    if (e.medio.value === 'mixto') { mixA = CM.leerMixto(f, cent); if (mixA.err) return fail(f, mixA.campo, mixA.err); }
+    var mot = e.motivo.value.trim(); if (mot.length < 3) return fail(f, 'motivo', 'Escribí el motivo del cambio.');
+    var antes = CM.medioTxt(a) + ' · ' + CM.fmtMoney(a.cent) + ' · ' + a.concepto;
+    a.hist = (a.hist || []).concat([{ ts: new Date().toISOString(), user: CM.db.cfg.operador, antes: { medio: a.medio, pays: a.pays || null, cent: a.cent, concepto: a.concepto, obs: a.obs || '' }, motivo: mot }]);
+    a.medio = e.medio.value; a.cent = cent; a.concepto = e.concepto.value; a.obs = e.obs.value.trim();
+    if (mixA) a.pays = mixA.pays; else delete a.pays;
+    CM.audit('Donación editada', a.id + ' · antes: ' + antes + ' · ahora: ' + CM.medioTxt(a) + ' · ' + CM.fmtMoney(a.cent) + ' · ' + a.concepto + ' · motivo: ' + mot);
+    CM.save(); CM.modal.close(true); render(); CM.toast('Donación actualizada.');
+  };
+  CM.acts['ap-quitar'] = function (t) {
+    var a = apPorId(t.getAttribute('data-id')); if (!a || !apAdmin()) return;
+    CM.modal.open({ title: 'Quitar donación ' + a.id, body: '<form id="fAPQ" data-form="ap-quitar" class="f" novalidate><input type="hidden" name="id" value="' + esc(a.id) + '"><p style="margin:0">' + CM.fmtFecha(a.fecha) + ' · ' + esc(quienDe(a).nom) + ' · <b>' + esc(CM.fmtMoney(a.cent)) + '</b></p><div class="note info">No se borra: queda guardada como «quitada», fuera de los totales y de la caja, y se puede restaurar.</div>' + fl('Motivo *', '<input class="in" name="motivo" placeholder="Ej.: se vuelve a cargar con el medio correcto">') + '<p class="err" role="alert" data-err></p></form>',
+      footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn bad" type="submit" form="fAPQ">Quitar donación</button>' });
+  };
+  CM.forms['ap-quitar'] = function (f) {
+    var e = f.elements, a = apPorId(e.id.value); if (!a || !apAdmin()) return;
+    if (a.estado !== 'registrado' || a.comp || CM.aporteEnCierre(a.id)) return fail(f, 'motivo', 'Esta donación ya está en una caja cerrada o tiene comprobante: no se quita.');
+    var mot = e.motivo.value.trim(); if (mot.length < 3) return fail(f, 'motivo', 'Escribí el motivo.');
+    a.estado = 'quitada'; a.quitada = { ts: new Date().toISOString(), user: CM.db.cfg.operador, motivo: mot };
+    CM.audit('Donación quitada', a.id + ' · ' + CM.fmtMoney(a.cent) + ' · ' + mot); CM.save(); CM.modal.close(true); render(); CM.toast('Donación quitada (se puede restaurar).');
+  };
+  CM.acts['ap-restaurar'] = function (t) {
+    var a = apPorId(t.getAttribute('data-id')); if (!a || !apAdmin() || a.estado !== 'quitada') return;
+    a.estado = 'registrado'; a.restaurada = { ts: new Date().toISOString(), user: CM.db.cfg.operador };
+    CM.audit('Donación restaurada', a.id + ' · ' + CM.fmtMoney(a.cent)); CM.save(); render(); CM.toast('Donación restaurada.');
+  };
   VIEWS.aportes = function () {
     var db = CM.db, mes = ($('#apMes') && $('#apMes').value) || CM.mesActual();
     var meses = {}; meses[CM.mesActual()] = 1; db.aportes.forEach(function (a) { meses[a.fecha.slice(0, 7)] = 1; });
     var ml = Object.keys(meses).sort().reverse();
     var flt = ($('#apFlt') && $('#apFlt').value) || '';
-    var arr = db.aportes.filter(function (a) { return (mes === 'todos' || a.fecha.slice(0, 7) === mes) && (!flt || (flt === 'sinfc' ? (!a.comp && !a.mig && a.estado === 'registrado') : a.estado === flt)); }).sort(function (a, b) { return b.ts.localeCompare(a.ts); });
+    var nQuit = db.aportes.filter(function (a) { return a.estado === 'quitada' && (mes === 'todos' || a.fecha.slice(0, 7) === mes); }).length;
+    var arr = db.aportes.filter(function (a) { return (mes === 'todos' || a.fecha.slice(0, 7) === mes) && (flt ? (flt === 'sinfc' ? (!a.comp && !a.mig && a.estado === 'registrado') : a.estado === flt) : a.estado !== 'quitada'); }).sort(function (a, b) { return b.ts.localeCompare(a.ts); });
     var tot = arr.filter(function (a) { return a.estado === 'registrado'; }).reduce(function (s, a) { return s + a.cent; }, 0);
     var sinFc = db.aportes.filter(function (a) { return !a.comp && !a.mig && a.estado === 'registrado'; }).length;   // las históricas de AppSheet no piden Factura C
     var comps = db.comps.slice().sort(function (a, b) { return b.id.localeCompare(a.id); });
-    return '<div class="page-h"><div><h1>Donaciones voluntarias y Factura C</h1><p>Registro de contribuciones de los pacientes. El módulo de Factura C ante ARCA es una <b>simulación</b>: no se envía nada a ARCA ni se obtiene CAE real.</p></div><button class="btn pri" data-act="aporte" data-dni="">' + CM.icon('plus') + 'Registrar donación</button></div>' +
-      '<div class="note info" style="margin-bottom:14px">Para emitir con CAE real hace falta el certificado digital de la ONG y la conexión con los servicios de ARCA (WSAA/WSFE) <b>[VERIFICAR con el contador y en arca.gob.ar]</b>. Esa etapa no está incluida en esta versión.</div>' +
-      '<div class="grid g3"><div class="card kpi"><div class="l">Donaciones del período</div><div class="v">' + esc(CM.fmtMoney(tot)) + '</div><div class="s">' + arr.length + ' registro(s) mostrados</div></div><div class="card kpi"><div class="l">Sin Factura C emitida</div><div class="v">' + sinFc + '</div><div class="s">Donaciones registrados pendientes de comprobante</div></div><div class="card kpi"><div class="l">Comprobantes simulados</div><div class="v">' + comps.length + '</div><div class="s">Facturas C y notas de crédito C</div></div></div>' +
+    return '<div class="page-h"><div><h1>Donaciones voluntarias' + (fcSim() ? ' y Factura C' : '') + '</h1>' + (fcSim() ? '<p>Registro de contribuciones de los pacientes. El módulo de Factura C ante ARCA es una <b>simulación</b>: no se envía nada a ARCA ni se obtiene CAE real.</p>' : '<p>Registro de las donaciones voluntarias. ' + (apAdmin() ? 'La administración puede <b>editar</b> el medio o <b>quitar</b> una donación (queda guardada y se puede restaurar).' : '') + '</p>') + '</div><button class="btn pri" data-act="aporte" data-dni="">' + CM.icon('plus') + 'Registrar donación</button></div>' +
+      (fcSim() ? '<div class="note info" style="margin-bottom:14px">Para emitir con CAE real hace falta el certificado digital de la ONG y la conexión con los servicios de ARCA (WSAA/WSFE) <b>[VERIFICAR con el contador y en arca.gob.ar]</b>. Esa etapa no está incluida en esta versión.</div>' : '') +
+      '<div class="grid g3"><div class="card kpi"><div class="l">Donaciones del período</div><div class="v">' + esc(CM.fmtMoney(tot)) + '</div><div class="s">' + arr.length + ' registro(s) mostrados</div></div>' + (fcSim() ? '<div class="card kpi"><div class="l">Sin Factura C emitida</div><div class="v">' + sinFc + '</div><div class="s">Donaciones registrados pendientes de comprobante</div></div><div class="card kpi"><div class="l">Comprobantes simulados</div><div class="v">' + comps.length + '</div><div class="s">Facturas C y notas de crédito C</div></div>' : '<div class="card kpi"><div class="l">Medios</div><div class="v" style="font-size:1rem;padding-top:8px">' + esc(medioResumen(arr)) + '</div><div class="s">Del período mostrado</div></div><div class="card kpi"><div class="l">Quitadas</div><div class="v">' + nQuit + '</div><div class="s">Fuera de totales y de la caja</div></div>') + '</div>' +
       '<section class="card" style="margin-top:14px"><div class="row" style="margin-bottom:12px"><label class="sr" for="apMes">Mes</label><select id="apMes" class="in" style="max-width:200px">' + opt('todos', 'Todos los meses', mes === 'todos') + ml.map(function (m) { return opt(m, m.slice(5) + '/' + m.slice(0, 4), m === mes); }).join('') + '</select>' +
-      '<label class="sr" for="apFlt">Estado</label><select id="apFlt" class="in" style="max-width:260px">' + opt('', 'Todos', !flt) + opt('registrado', 'Registrados', flt === 'registrado') + opt('sinfc', 'Sin Factura C', flt === 'sinfc') + opt('anulado', 'Anulados', flt === 'anulado') + '</select></div>' +
-      (arr.length ? '<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Paciente</th><th>Concepto</th><th>Medio</th><th class="n">Importe</th><th>Comprobante</th></tr></thead><tbody>' + arr.map(function (a) { return filaDonacion(a, false); }).join('') + '</tbody></table></div>' : tablaVacia('No hay donaciones en este período.')) + '</section>' +
-      '<section class="card" style="margin-top:14px"><h2>Comprobantes emitidos (simulados)</h2>' + (comps.length ? '<div class="tw"><table><thead><tr><th>Tipo</th><th>Número</th><th>Fecha</th><th>Paciente</th><th class="n">Importe</th><th>Estado</th><th></th></tr></thead><tbody>' + comps.map(function (c) {
+      '<label class="sr" for="apFlt">Estado</label><select id="apFlt" class="in" style="max-width:260px">' + opt('', 'Todos', !flt) + opt('registrado', 'Registrados', flt === 'registrado') + opt('sinfc', 'Sin Factura C', flt === 'sinfc') + opt('anulado', 'Anulados', flt === 'anulado') + opt('quitada', 'Quitadas (' + nQuit + ')', flt === 'quitada') + '</select></div>' +
+      (arr.length ? '<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Paciente</th><th>Concepto</th><th>Medio</th><th class="n">Importe</th><th>' + (fcSim() ? 'Comprobante' : 'Estado') + '</th></tr></thead><tbody>' + arr.map(function (a) { return filaDonacion(a, false); }).join('') + '</tbody></table></div>' : tablaVacia('No hay donaciones en este período.')) + '</section>' +
+      (fcSim() || comps.length ? '<section class="card" style="margin-top:14px"><h2>Comprobantes emitidos (simulados)</h2>' + (comps.length ? '<div class="tw"><table><thead><tr><th>Tipo</th><th>Número</th><th>Fecha</th><th>Paciente</th><th class="n">Importe</th><th>Estado</th><th></th></tr></thead><tbody>' + comps.map(function (c) {
         return '<tr><td>' + (c.tipo === 'FC' ? 'Factura C' : 'Nota de crédito C') + '</td><td>' + esc(c.pv + '-' + c.nro) + '</td><td>' + CM.fmtFecha(c.fecha) + '</td><td>' + esc(nombreCorto(quienDe(c).nom)) + '</td><td class="n">' + esc(CM.fmtMoney(c.cent)) + '</td><td>' + (c.anulado ? '<span class="pill p-bad">Anulada</span>' : '<span class="pill p-info">Simulada</span>') + '</td><td><button class="btn sm" data-act="ver-comp" data-id="' + esc(c.id) + '">Ver / imprimir</button></td></tr>';
-      }).join('') + '</tbody></table></div>' : tablaVacia('Todavía no se emitieron comprobantes.')) + '</section>';
+      }).join('') + '</tbody></table></div>' : tablaVacia('Todavía no se emitieron comprobantes.')) + '</section>' : '');
   };
+  function medioResumen(arr) {
+    var m = {}; arr.forEach(function (a) { if (a.estado !== 'registrado') return; CM.partesAporte(a).forEach(function (x) { m[x.m] = (m[x.m] || 0) + x.a; }); });
+    var k = Object.keys(m); return k.length ? k.map(function (x) { return (CM.MEDIOS[x] || x) + ' ' + CM.fmtMoney(m[x]); }).join(' · ') : 'Sin datos';
+  }
 
   /* ---------- dispensaciones ---------- */
   VIEWS.dispensaciones = function () {
@@ -694,12 +753,13 @@
   /* ---------- medio de la donación: uno solo o «mixto» (varios medios que suman el total) ---------- */
   function fcSim() { return !(CM.nube && CM.nube.activa); }   /* la Factura C simulada sólo existe en la demo sin nube */
   CM.fcSim = fcSim;
-  function medioSelect() {
-    return '<select class="in" name="medio" data-medio>' + Object.keys(CM.MEDIOS).map(function (k) { return opt(k, CM.MEDIOS[k]); }).join('') + opt('mixto', 'Mixto (varios medios)') + '</select>';
+  function medioSelect(sel) {
+    return '<select class="in" name="medio" data-medio>' + Object.keys(CM.MEDIOS).map(function (k) { return opt(k, CM.MEDIOS[k], k === sel); }).join('') + opt('mixto', 'Mixto (varios medios)', sel === 'mixto') + '</select>';
   }
-  function mixtoHtml() {
-    return '<div class="card flat" data-mixto hidden><b>Pago mixto</b><p class="hint" style="margin:4px 0 8px">Cargá cuánto entró por cada medio. La suma tiene que dar exactamente el importe de la donación.</p><div class="f f2">' +
-      Object.keys(CM.MEDIOS).map(function (k) { return fl(CM.MEDIOS[k], '<input class="in num" name="mx_' + k + '" inputmode="decimal" placeholder="0">'); }).join('') + '</div><p class="hint" data-mxsum aria-live="polite"></p></div>';
+  function mixtoHtml(pays) {
+    var val = {}; (pays || []).forEach(function (x) { val[x.m] = String(x.a / 100).replace('.', ','); });
+    return '<div class="card flat" data-mixto' + (pays && pays.length > 1 ? '' : ' hidden') + '><b>Pago mixto</b><p class="hint" style="margin:4px 0 8px">Cargá cuánto entró por cada medio. La suma tiene que dar exactamente el importe de la donación.</p><div class="f f2">' +
+      Object.keys(CM.MEDIOS).map(function (k) { return fl(CM.MEDIOS[k], '<input class="in num" name="mx_' + k + '" inputmode="decimal" placeholder="0"' + (val[k] ? ' value="' + esc(val[k]) + '"' : '') + '>'); }).join('') + '</div><p class="hint" data-mxsum aria-live="polite"></p></div>';
   }
   CM.leerMixto = function (f, total) {
     var pays = [], suma = 0, bad = '';

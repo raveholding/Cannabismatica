@@ -156,7 +156,7 @@
       fl('Clave', '<span class="pwrow"><input class="in" type="password" name="clave" autocomplete="current-password"><button type="button" class="btn sm" data-act="ver-clave" aria-pressed="false">Mostrar</button></span>') +
       '<p class="err" role="alert" data-err></p><button class="btn pri" type="submit">Ingresar</button><div class="row" style="justify-content:space-between"><button type="button" class="btn sm" data-act="olvide">Olvidé mi contraseña</button><a class="btn sm" href="#/m">Volver al menú</a></div></form>' +
       '<div class="note warn" style="margin-top:14px">Sistema sin conexión a la nube configurada (modo local de desarrollo). Completá <code>js/config.js</code> para ingresar.</div>' +
-      '<p class="hint" style="margin-top:12px">Desarrollado por <b>VINCULAR BUSINESS</b> · <i>Tu idea, en buenas manos.</i></p>' + CM.devBanner('necesito ayuda para ingresar al sistema de ' + cfg.nombre) + '</div></div>';
+      '<p class="hint" style="margin-top:12px">Desarrollado por <b>VINCULAR BUSINESS</b> · <i>Tu idea, en buenas manos.</i></p>' + CM.devBanner('te escribo desde el sistema de ' + cfg.nombre) + '</div></div>';
   };
   CM.forms.acceso = function (f) {
     var r = CM.login(f.elements.correo.value, f.elements.clave.value);
@@ -167,8 +167,7 @@
   CM.acts['acceso-usar'] = function (t) { var e = document.querySelector('[data-form="acceso"]'); if (!e) return; e.elements.correo.value = t.getAttribute('data-v'); e.elements.clave.value = CM.CLAVE_DEMO; e.elements.clave.focus(); };
   CM.acts['ver-clave'] = function (t) { var i = t.parentNode.querySelector('input'), v = i.type === 'password'; i.type = v ? 'text' : 'password'; t.textContent = v ? 'Ocultar' : 'Mostrar'; t.setAttribute('aria-pressed', String(v)); };
   CM.acts.olvide = function () {
-    var cfg = CM.db.menu.pub;
-    CM.modal.open({ title: 'Olvidé mi contraseña', body: '<p>Pedile a la <b>administración de la fundación</b> que te genere una clave temporal desde <i>Usuarios y permisos</i>. Al ingresar vas a elegir una clave propia.</p><p>Si la administración tampoco puede ingresar, escribile a VINCULAR BUSINESS.</p>', footer: '<button class="btn" data-act="modal-close">Cerrar</button><a class="btn pri" href="https://wa.me/5493874484132?text=' + encodeURIComponent('Hola VINCULAR BUSINESS, olvidé la clave del sistema de ' + cfg.nombre) + '" target="_blank" rel="noopener noreferrer">Escribir a VINCULAR BUSINESS</a>' });
+    CM.modal.open({ title: 'Olvidé mi contraseña', body: '<p>Pedile la clave a la <b>persona que administra el sistema</b> en la fundación.</p><ol class="olv"><li>La administración entra a <i>Usuarios y permisos</i>.</li><li>Busca tu nombre y toca <b>Clave temporal</b>.</li><li>Te pasa esa clave por un medio seguro.</li><li>Ingresás con ella y el sistema te pide elegir una clave propia.</li></ol><p class="hint">Por seguridad, nadie fuera de la fundación puede ver ni cambiar tu clave.</p>', footer: '<button class="btn pri" data-act="modal-close">Entendido</button>' });
   };
   CM.acts.salir = function () { CM.logout(); CM.db.cfg.rol = 'admin'; g.location.hash = '#/m'; render(); CM.toast('Cerraste la sesión.'); };
   CM.modalClave = function (forzada) {
