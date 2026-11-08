@@ -83,7 +83,7 @@
   function render() {
     var r = ruta();
     if (!VIEWS[r.v]) r = { v: 'inicio', a: '' };
-    var pub = r.v === 'm' || r.v === 'acceso';
+    var pub = r.v === 'm' || r.v === 'acceso' || r.v === 'mitarjeta' || r.v === 'tarjeta';
     if (!pub && CM.sesionOk && !CM.sesionOk()) { g.location.hash = '#/m'; return; }
     document.body.classList.toggle('pub', pub);
     if (CM.rolSel) CM.rolSel();

@@ -95,7 +95,7 @@
       var premio = (c.club.premio && (c.club.premio[L] || c.club.premio.es)) || '';
       return '<div class="pubx-card" role="img" aria-label="' + esc(t.tarj + ' (' + t.ej + '): ' + llenos + ' / ' + meta) + '"><div class="pubx-card-h"><b>' + esc(c.nombre || '') + '</b><span class="pill">' + esc(t.ej) + '</span></div>' +
         '<small>' + esc(t.socio) + ' · ' + llenos + '/' + meta + '</small><div class="pubx-stamps" style="grid-template-columns:repeat(' + Math.min(5, meta) + ',1fr)">' + cells + '</div>' +
-        (premio ? '<div class="pubx-reward">' + esc(t.falta.replace('{n}', meta - llenos)) + ' ' + esc(premio) + '</div>' : '') + '</div><p class="hint" style="margin:8px 0 0">' + esc(t.tarjD) + '</p>';
+        (premio ? '<div class="pubx-reward">' + esc(t.falta.replace('{n}', meta - llenos)) + ' ' + esc(premio) + '</div>' : '') + '</div><p class="hint" style="margin:8px 0 0">' + esc(t.tarjD) + '</p><p style="margin:10px 0 0"><a class="btn" href="#/mitarjeta">' + (L === 'en' ? (CM.miTarjetaGuardada && CM.miTarjetaGuardada() ? 'Open my card' : 'I already have my card link') : (CM.miTarjetaGuardada && CM.miTarjetaGuardada() ? 'Ver mi tarjeta' : 'Ya tengo mi tarjeta')) + '</a></p>';
     },
     clubTitulo: function (L) { return (T[L] || T.es).tarj; },
     /* paneles: mapa + reseñas + redes */

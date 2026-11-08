@@ -53,9 +53,10 @@
       var r = CM.leerTokenSello(code);
       if (!r) { CM.toast('El QR no es una tarjeta del Club.', true); return; }
       if (r.err) { CM.toast(r.err, true); return; }
-      var s = CM.otorgarSello(r.dni, 'Participación en taller');
+      r.medio = (r.medio || 'QR') + ' · cámara';
+      var s = CM.sellarLeido ? CM.sellarLeido(r, 'Participación en taller') : CM.otorgarSello(r.dni, 'Participación en taller');
       if (s.err) { CM.toast(s.err, true); return; }
-      CM.audit('Sello otorgado', 'Legajo ' + CM.legDe(r.dni) + ' · ' + s.ok.id + ' · medio: QR con cámara'); CM.save(); render(); CM.toast('Sello otorgado a ' + U.nombreCorto(U.nombreDe(r.dni)) + '.');
+      render(); CM.toast('Sello otorgado a ' + U.nombreCorto(U.nombreDe(r.dni)) + '.');
     }
   }
 
@@ -66,9 +67,10 @@
     if (r) {
       if (r.err) return fail(f, 'dni', r.err);
       f.elements.dni.value = r.dni;
-      var s = CM.otorgarSello(r.dni, f.elements.motivo.value);
+      r.medio = (r.medio || 'QR') + ' · lector';
+      var s = CM.sellarLeido(r, f.elements.motivo.value);
       if (s.err) return fail(f, 'dni', s.err);
-      CM.audit('Sello otorgado', 'Legajo ' + CM.legDe(r.dni) + ' · ' + s.ok.id + ' · medio: QR (lector)'); CM.save(); render(); CM.toast('Sello otorgado.');
+      render(); CM.toast('Sello otorgado.');
       return;
     }
     return f0(f);

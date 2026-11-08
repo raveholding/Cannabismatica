@@ -255,3 +255,19 @@ textarea.in.tall{min-height:160px}
 .cu-cod{font-size:11px;letter-spacing:.02em}
 .cu-gen h3{font-size:15px}
 .pacpick-box:empty{display:none}
+/* tarjeta del Club en el celular (#/mitarjeta) */
+.mitj{min-height:100vh;display:grid;place-items:center;padding:16px;background:#0c1504}
+.mitj-c{width:100%;max-width:420px;background:#13200a;border:1px solid #2c4614;border-radius:20px;padding:22px 18px;color:#e9f5d8;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.mitj-logo{max-width:170px;height:auto}
+.mitj-num{font-size:1.25rem;font-weight:700;margin-top:8px;letter-spacing:.02em}
+.mitj-s{justify-content:center;grid-template-columns:repeat(4,34px);margin:14px auto 6px}
+.mitj-s span{width:34px;height:34px;font-size:18px}
+.mitj-t{margin:6px 0;color:#c9dcb0}
+.mitj-qr{background:#fff;border-radius:14px;padding:12px;margin:12px auto;max-width:260px}
+.mitj-qr svg{width:100%;height:auto;display:block}
+.mitj-cod{font:700 2rem/1.1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;color:#a0de4a}
+.mitj-err{color:#ffb4a8}
+.mitj .btn{min-height:44px}
+.mitj-vacia{max-width:460px;margin:40px auto;text-align:center}
+.mitj-vacia .btn{margin:6px}
+tr.sel td{background:rgba(160,222,74,.12)}

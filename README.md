@@ -5,6 +5,13 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-08, tarde)
+- **Clave olvidada:** se pide a la administración del sistema (Usuarios y permisos → Clave temporal), no al soporte del desarrollador.
+- **Donaciones:** la administración puede editar (medio, importe, mixto, con motivo) y quitar/restaurar donaciones; el servidor lo exige (`04-donaciones-admin.sql`). Las 38 donaciones de noviembre migradas de AppSheet quedaron «Quitadas» para volver a cargarlas con el medio correcto (respaldo en `respaldo_aportes_20261108`).
+- **Caja:** «Ver» en cada movimiento abre el detalle de la operación (donación y sus medios, dispensación vinculada, correcciones y auditoría), también en cajas cerradas. El contraasiento queda vinculado al original. En la nube la donación mixta entra a la caja un movimiento por medio.
+- **Tarjeta del Club** (portado de Sistema VB V26.3–V26.58): N.º de socio, tarjeta en el celular (`#/mitarjeta`) con QR y código de 4 cifras que cambian cada 2 minutos (un solo uso) y sellos que se actualizan solos (`05-club-tarjeta.sql`, `pub_club_estado`); enlace personal por WhatsApp; reemitir (invalida la anterior) y baja. La tarjeta vieja (firma fija) ya no se acepta.
+- Pruebas: `t/e2e_donaciones_1108.py` (16), `t/e2e_club_caja_1108.py` (28).
+
 ## Novedades (2026-11-08) · Ajustes pedidos por la fundación
 
 - **Membresías**: el campo Paciente lista a los pacientes cargados mientras se escribe (tocar = elegir). **Planes** editables («Plan de Salud», «Consulta Médica» u otros): sólo el administrador, o quien tenga nivel *admin* en Fidelización, puede crearlos, modificarlos o archivarlos (también lo exige el servidor). Al confirmar el pago se carga el importe recibido.

@@ -206,7 +206,7 @@
     var t = o.tipo === 'ingreso' ? 'ingreso' : 'egreso';
     if (r.tipo !== t && r.tipo !== 'ambos') return { err: 'Ese rubro no corresponde a un ' + t + '.' };
     if (o.tipo !== 'ingreso' && String(o.motivo || '').trim().length < 4) return { err: 'Escribí el motivo (obligatorio para egresos, retiros y reintegros).' };
-    var m = { id: CM.nextId('CM'), caja: caja.id, ts: o.ts || new Date().toISOString(), tipo: o.tipo, cent: o.cent, medio: 'efectivo', rubroId: r.id, rubroN: r.n, motivo: String(o.motivo || '').trim(), user: CM.db.cfg.operador, ref: '' };
+    var m = { id: CM.nextId('CM'), caja: caja.id, ts: o.ts || new Date().toISOString(), tipo: o.tipo, cent: o.cent, medio: 'efectivo', rubroId: r.id, rubroN: r.n, motivo: String(o.motivo || '').trim(), user: CM.db.cfg.operador, ref: (o.ref && CM.db.cmovs.some(function (x) { return x.id === o.ref; })) ? o.ref : '' };
     CM.db.cmovs.push(m);
     return { ok: m };
   };
