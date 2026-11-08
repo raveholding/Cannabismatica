@@ -11,10 +11,12 @@
 //   { accion: 'desconectar' }                    → admin: revoca y borra el permiso
 //   { accion: 'carpeta', legajo, dni }           → crea o reutiliza Legajos/{legajo}_{DNI|SD}
 //   { accion: 'subir', legajo, dni, nombre, mime, tipo, version, hash, b64 } → sube a la carpeta del legajo
+//   { accion: 'picker' }                       → admin: datos públicos para abrir el selector de Google
+//   { accion: 'vincular', items:[{fileId,nombre,legajo,dni}] } → admin: acceso directo al archivo anterior en la carpeta del legajo
 //   { accion: 'planilla', ciclo, cicloNombre, nombre, version, hash, b64 }  → sube la planilla de cultivo (CSV)
 //        a «Planillas de cultivo · ONG / {ciclo} · {nombre}»; nunca pisa: archivo nuevo por versión, mismo contenido = no repite
 // GET ?code&state (vuelta desde Google): guarda el permiso y vuelve al sistema.
-// Secretos: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, ALLOWED_ORIGINS, SITE_URL
+// Secretos: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, ALLOWED_ORIGINS, SITE_URL, GOOGLE_PICKER_API_KEY, GOOGLE_PROJECT_NUMBER
 //           (SUPABASE_URL, SUPABASE_ANON_KEY y SUPABASE_SERVICE_ROLE_KEY los provee Supabase).
 // «Verify JWT» APAGADO: la vuelta de Google no trae sesión; cada acción POST valida el JWT acá.
 
@@ -218,6 +220,43 @@ export async function manejar(req: Request, d: Deps): Promise<Response> {
       if (!configurado || !con || !con.token) return json({ ok: false, error: 'Google Drive de la ONG sin conectar: un administrador tiene que conectarlo una vez.', codigo: 'sin_conectar' }, 503, h);
       const at0 = await tokenAcceso(d, tenant, con.token);
       return json(await subirPlanilla(d, at0, b, me.tenant.nombre), 200, h);
+    }
+    if (b.accion === 'picker') {
+      // datos PÚBLICOS para abrir el selector de Google (Picker) en el navegador: ID de cliente, clave de API del navegador
+      // (restringida por dominio en Google Cloud) y N.º de proyecto. Ningún token ni secreto.
+      if (me.rol !== 'admin') return json({ ok: false, error: 'Sólo un administrador puede vincular documentos del sistema anterior.' }, 403, h);
+      const key = d.env('GOOGLE_PICKER_API_KEY') || '', app = d.env('GOOGLE_PROJECT_NUMBER') || '';
+      if (!configurado || !key || !/^\d{6,20}$/.test(app)) return json({ ok: false, error: 'Pendiente de configuración: falta la clave del selector de Google en el servidor.', codigo: 'config' }, 503, h);
+      if (!con || !con.token) return json({ ok: false, error: 'Google Drive de la ONG sin conectar: un administrador tiene que conectarlo una vez.', codigo: 'sin_conectar' }, 503, h);
+      return json({ ok: true, clientId: d.env('GOOGLE_OAUTH_CLIENT_ID'), apiKey: key, appId: app, cuenta: con.cuenta || '' }, 200, h);
+    }
+    if (b.accion === 'vincular') {
+      // archivos del sistema anterior elegidos con el Picker (con la misma cuenta conectada): se crea un ACCESO DIRECTO en la carpeta
+      // del legajo (el original no se mueve ni se toca: AppSheet sigue funcionando). Idempotente por archivo.
+      if (me.rol !== 'admin') return json({ ok: false, error: 'Sólo un administrador puede vincular documentos.' }, 403, h);
+      if (!configurado || !con || !con.token) return json({ ok: false, error: 'Google Drive de la ONG sin conectar.', codigo: 'sin_conectar' }, 503, h);
+      const items = Array.isArray(b.items) ? b.items.slice(0, 25) : [];
+      if (!items.length) return json({ ok: false, error: 'No hay archivos para vincular.' }, 400, h);
+      const at1 = await tokenAcceso(d, tenant, con.token);
+      const raiz1 = await raizLegajos(d, at1, tenant, con.raiz, me.tenant.nombre);
+      const out: any[] = [];
+      for (const it of items) {
+        const fid = String(it && it.fileId || ''), leg = String(it && it.legajo || ''), nom = String(it && it.nombre || '');
+        try {
+          if (!RE_ID.test(fid) || !RE_LEG.test(leg)) throw new Falla(400, 'datos', 'Datos inválidos.');
+          const f: any = await g(d, at1, `${DRIVE}/${fid}?fields=id,name,mimeType,webViewLink,trashed`);
+          if (!f || f.trashed) throw new Falla(404, 'no_acceso', 'El sistema no tiene acceso a ese archivo: elegilo en el selector con la cuenta conectada.');
+          if (nom && f.name !== nom) throw new Falla(409, 'otro_archivo', 'El archivo elegido no coincide con el documento del legajo.');
+          const cp1 = await carpetaPaciente(d, at1, raiz1, leg, String(it.dni || ''));
+          const ya1 = await buscar(d, at1, `${q(cp1.id)} in parents and appProperties has { key='vbongLegacy' and value=${q(fid)} } and trashed = false`);
+          if (!ya1.length) await g(d, at1, `${DRIVE}?fields=id`, { method: 'POST', json: { name: limpio(f.name, 140), mimeType: 'application/vnd.google-apps.shortcut', parents: [cp1.id], shortcutDetails: { targetId: fid }, appProperties: { vbong: '1', vbongLegacy: fid, vbongLegajo: leg } } });
+          out.push({ fileId: fid, ok: true, url: f.webViewLink || 'https://drive.google.com/file/d/' + fid + '/view', carpetaUrl: cp1.url, repetido: !!ya1.length });
+        } catch (e: any) {
+          if (e instanceof Falla && (e.codigo === 'reconectar' || e.codigo === 'limite' || e.codigo === 'cuota')) throw e;
+          out.push({ fileId: fid, ok: false, error: e instanceof Falla ? e.message : 'Error inesperado.' });
+        }
+      }
+      return json({ ok: true, items: out }, 200, h);
     }
     if (b.accion !== 'carpeta' && b.accion !== 'subir') return json({ ok: false, error: 'Acción desconocida.' }, 400, h);
     if (!RE_LEG.test(String(b.legajo || ''))) return json({ ok: false, error: 'Legajo inválido.' }, 400, h);

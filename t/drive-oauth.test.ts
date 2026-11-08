@@ -40,7 +40,7 @@ function mundo(o: { rol?: string; sinConexion?: boolean; rtInvalido?: boolean } 
         w.subidas++; const f = { id: id(''), ...meta, webViewLink: 'https://drive.google.com/file/d/X/view', md5Checksum: 'md5' }; w.files.push(f); return R(f);
       }
       const m = /\/files\/([^/]+)$/.exec(u.pathname);
-      if (m) { const f = w.files.find((x: any) => x.id === m[1]); return f ? R({ id: f.id, trashed: !!f.trashed }) : R({}, 404); }
+      if (m) { const f = w.files.find((x: any) => x.id === m[1]); return f ? R({ ...f, trashed: !!f.trashed }) : R({}, 404); }
       if ((init.method || 'GET') === 'POST') { const meta = JSON.parse(init.body); const f = { id: id(''), ...meta, webViewLink: 'https://drive.google.com/drive/folders/F' }; w.files.push(f); return R(f); }
       const qq = u.searchParams.get('q') || '';
       return R({ files: w.files.filter((f: any) => {
@@ -155,5 +155,31 @@ await t('planilla de cultivo: carpeta «Planillas de cultivo», un archivo por c
   assert.strictEqual((await run(w, pl({ ciclo: "x' or '1" }))).st, 400);
   assert.strictEqual((await run(w, pl({ nombre: 'algo.exe' }))).st, 422);
   assert.strictEqual((await run(mundo({ sinConexion: true }), pl())).st, 503);
+});
+await t('picker: sólo admin; sin clave del selector → 503; con clave devuelve datos públicos sin tokens', async () => {
+  _limpiarCache();
+  assert.strictEqual((await run(mundo({ rol: 'supervisor' }), { accion: 'picker' })).st, 403);
+  const a = await run(mundo(), { accion: 'picker' }); assert.strictEqual(a.st, 503); assert.strictEqual(a.j.codigo, 'config');
+  const e2 = env({ GOOGLE_PICKER_API_KEY: 'AIza-prueba', GOOGLE_PROJECT_NUMBER: '123456789012' });
+  const b2 = await run(mundo(), { accion: 'picker' }, e2);
+  assert.strictEqual(b2.st, 200); assert.deepStrictEqual([b2.j.clientId, b2.j.apiKey, b2.j.appId, b2.j.cuenta], ['cid.apps.googleusercontent.com', 'AIza-prueba', '123456789012', 'ong@gmail.com']);
+  assert.ok(!JSON.stringify(b2.j).includes('rt-guardado') && !JSON.stringify(b2.j).includes('secreto'));
+  assert.strictEqual((await run(mundo({ sinConexion: true }), { accion: 'picker' }, e2)).st, 503);
+});
+await t('vincular: acceso directo en la carpeta del legajo (el original no se mueve); repetir no duplica; nombre distinto o sin acceso → error por archivo', async () => {
+  _limpiarCache(); const w = mundo();
+  w.files.push({ id: 'ORIG000000001', name: 'abc123.Archivo_PDF.1.pdf', mimeType: 'application/pdf', parents: ['APPSHEET'], webViewLink: 'https://drive.google.com/file/d/ORIG000000001/view' });
+  const it = { fileId: 'ORIG000000001', nombre: 'abc123.Archivo_PDF.1.pdf', legajo: LEG, dni: '99100001' };
+  const a = await run(w, { accion: 'vincular', items: [it, { ...it, fileId: 'NOEXISTE00001' }, { ...it, nombre: 'otro.pdf' }] });
+  assert.strictEqual(a.st, 200, JSON.stringify(a.j));
+  assert.ok(a.j.items[0].ok && /ORIG000000001/.test(a.j.items[0].url));
+  assert.ok(!a.j.items[1].ok && /acceso/.test(a.j.items[1].error)); assert.ok(!a.j.items[2].ok && /no coincide/.test(a.j.items[2].error));
+  const sc = w.files.filter((f: any) => f.mimeType === 'application/vnd.google-apps.shortcut'); assert.strictEqual(sc.length, 1);
+  const cp = w.files.find((f: any) => f.name === LEG + '_99100001'); assert.deepStrictEqual(sc[0].parents, [cp.id]); assert.strictEqual(sc[0].shortcutDetails.targetId, 'ORIG000000001');
+  assert.deepStrictEqual(w.files.find((f: any) => f.id === 'ORIG000000001').parents, ['APPSHEET']);
+  const b2 = await run(w, { accion: 'vincular', items: [it] }); assert.ok(b2.j.items[0].ok && b2.j.items[0].repetido);
+  assert.strictEqual(w.files.filter((f: any) => f.mimeType === 'application/vnd.google-apps.shortcut').length, 1);
+  assert.strictEqual((await run(mundo({ rol: 'mostrador' }), { accion: 'vincular', items: [it] })).st, 403);
+  assert.strictEqual((await run(w, { accion: 'vincular', items: [] })).st, 400);
 });
 console.log('\n' + ok + ' pruebas correctas' + (malas ? ' · ' + malas + ' FALLAS' : '')); if (malas) process.exit(1);
