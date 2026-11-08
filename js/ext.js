@@ -70,7 +70,7 @@
   CM.LVL = ['', 'ver', 'oper', 'edit', 'admin'];
   CM.LVL_L = { '': 'Sin acceso', ver: 'Sólo ver', oper: 'Operar (cargar)', edit: 'Editar', admin: 'Administrar (anular / cerrar)' };
   CM.MODS = [
-    ['pacientes', 'Pacientes'], ['dispensaciones', 'Dispensaciones'], ['aportes', 'Donaciones y Factura C'], ['reprocann', 'REPROCANN'], ['trazabilidad', 'Trazabilidad'],
+    ['pacientes', 'Pacientes'], ['dispensaciones', 'Dispensaciones'], ['aportes', 'Donaciones y Factura C'], ['reprocann', 'REPROCANN'], ['trazabilidad', 'Trazabilidad / Stock'],
     ['dashboard', 'Dashboard'], ['caja', 'Caja'], ['cierre', 'Arqueo y cierre'], ['cerradas', 'Cajas cerradas'], ['inventario', 'Inventario'], ['fidelizacion', 'Fidelización'],
     ['personal', 'Personal y fichaje'], ['tareas', 'Tareas y organigrama'], ['menu', 'Menú público'], ['nube', 'Nube'], ['perifericos', 'Periféricos y ticket'],
     ['importexport', 'Importar / Exportar'], ['integraciones', 'Integraciones'], ['usuarios', 'Usuarios y permisos'], ['auditoria', 'Auditoría'], ['ajustes', 'Configuración']
@@ -170,9 +170,14 @@
   function aportesDeCaja(caja) {
     var cerrados = {};
     CM.db.cajas.forEach(function (c) { if (c.estado === 'cerrada' && c.cierre) c.cierre.movs.forEach(function (m) { if (m.ref) cerrados[m.ref] = 1; }); });
-    return CM.db.aportes.filter(function (a) { return a.estado === 'registrado' && !a.mig && a.fecha >= caja.fecha && !cerrados[a.id]; }).map(function (a) {
-      return { id: 'AP-' + a.id, ts: a.ts, tipo: 'ingreso', cent: a.cent, medio: a.medio, rubroId: 'R-01', rubroN: 'Donaciones voluntarias', motivo: a.concepto + ' · ' + (a.dni ? 'Legajo ' + CM.legDe(a.dni) : 'donante sin identificar'), user: a.user, ref: a.id, derivado: true, fc: !!a.comp };
+    var out = [];
+    CM.db.aportes.filter(function (a) { return a.estado === 'registrado' && !a.mig && a.fecha >= caja.fecha && !cerrados[a.id]; }).forEach(function (a) {
+      var partes = CM.partesAporte(a);   /* una donación mixta entra a la caja como un movimiento por medio (mismo comprobante) */
+      partes.forEach(function (x, i) {
+        out.push({ id: 'AP-' + a.id + (partes.length > 1 ? '-' + (i + 1) : ''), ts: a.ts, tipo: 'ingreso', cent: x.a, medio: x.m, rubroId: 'R-01', rubroN: 'Donaciones voluntarias', motivo: a.concepto + (partes.length > 1 ? ' (mixta ' + (i + 1) + '/' + partes.length + ')' : '') + ' · ' + (a.dni ? 'Legajo ' + CM.legDe(a.dni) : 'donante sin identificar'), user: a.user, ref: a.id, derivado: true, fc: !!a.comp });
+      });
     });
+    return out;
   }
   CM.cajaMovs = function (caja) {
     if (caja.estado === 'cerrada' && caja.cierre) return caja.cierre.movs;

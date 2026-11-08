@@ -115,7 +115,14 @@
     comestible: { n: 'Comestible oral', unidad: 'u', un: 'unidades' },
     crema: { n: 'Crema tópica', unidad: 'u', un: 'unidades' }
   };
-  CM.MEDIOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', mercadopago: 'Mercado Pago (QR / link)', otro: 'Otro' };
+  CM.MEDIOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', mercadopago: 'Mercado Pago (QR / link)', debito: 'Tarjeta de débito', credito: 'Tarjeta de crédito', otro: 'Otro' };
+  /* Donación con varios medios a la vez («mixto»): a.medio = 'mixto' y a.pays = [{ m: medio, a: centavos }]. La suma da exactamente el total. */
+  CM.partesAporte = function (a) { return a && a.medio === 'mixto' && Array.isArray(a.pays) && a.pays.length ? a.pays : [{ m: a.medio, a: a.cent }]; };
+  CM.medioTxt = function (a) {
+    if (!a) return '';
+    if (a.medio !== 'mixto') return CM.MEDIOS[a.medio] || a.medio;
+    return 'Mixto: ' + CM.partesAporte(a).map(function (x) { return (CM.MEDIOS[x.m] || x.m) + ' ' + CM.fmtMoney(x.a); }).join(' + ');
+  };
   CM.CONCEPTOS = ['Donación voluntaria', 'Contribución'];
   CM.REP_LABEL = { valido: 'Válido', vencido: 'Vencido', tramite: 'En trámite', sin: 'Sin REPROCANN' };
   CM.REP_CLASS = { valido: 'p-ok', vencido: 'p-bad', tramite: 'p-warn', sin: 'p-mu' };

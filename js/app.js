@@ -7,7 +7,7 @@
 
   var NAV = CM.NAV = [
     ['inicio', 'Inicio', 'home', 'inicio'], ['pacientes', 'Pacientes', 'users', 'pacientes'], ['dispensaciones', 'Dispensaciones', 'flask', 'dispensaciones'],
-    ['aportes', 'Donaciones', 'heart', 'aportes'], ['reprocann', 'REPROCANN', 'shield', 'reprocann'], ['trazabilidad', 'Trazabilidad', 'chart', 'trazabilidad'],
+    ['aportes', 'Donaciones', 'heart', 'aportes'], ['reprocann', 'REPROCANN', 'shield', 'reprocann'], ['trazabilidad', 'Trazabilidad / Stock', 'chart', 'trazabilidad'],
     ['-', 'Gestión'],
     ['dashboard', 'Dashboard', 'chart', 'dashboard'], ['caja', 'Caja', 'cash', 'caja'], ['cierre', 'Arqueo y cierre', 'lock', 'cierre'], ['cajas-cerradas', 'Cajas cerradas', 'archive', 'cerradas'],
     ['inventario', 'Inventario', 'box', 'inventario'], ['fidelizacion', 'Fidelización', 'star', 'fidelizacion'], ['personal', 'Personal y fichaje', 'clock', 'personal'], ['tareas', 'Tareas y organigrama', 'tasks', 'tareas'],
@@ -18,7 +18,7 @@
     ['nube', 'Nube', 'cloud', 'nube'], ['perifericos', 'Periféricos y ticket', 'plug', 'perifericos'], ['importexport', 'Importar / Exportar', 'swap', 'importexport'], ['integraciones', 'Integraciones', 'link', 'integraciones'],
     ['usuarios', 'Usuarios y permisos', 'key', 'usuarios'], ['auditoria', 'Auditoría', 'doc', 'auditoria'], ['ajustes', 'Configuración', 'gear', 'ajustes']
   ];
-  var TITULOS = CM.TITULOS = { inicio: 'Inicio', solicitudes: 'Solicitudes del menú', pacientes: 'Pacientes', paciente: 'Ficha del paciente', dispensaciones: 'Dispensaciones', aportes: 'Donaciones voluntarias y Factura C', reprocann: 'REPROCANN', trazabilidad: 'Trazabilidad', ajustes: 'Configuración' };
+  var TITULOS = CM.TITULOS = { inicio: 'Inicio', solicitudes: 'Solicitudes del menú', pacientes: 'Pacientes', paciente: 'Ficha del paciente', dispensaciones: 'Dispensaciones', aportes: 'Donaciones voluntarias y Factura C', reprocann: 'REPROCANN', trazabilidad: 'Trazabilidad / Stock', ajustes: 'Configuración' };
 
   /* ---------- helpers de vista ---------- */
   function uTxt(u, n) {
@@ -165,7 +165,9 @@
     var tot = {};
     dm.forEach(function (d) { tot[d.unidad] = (tot[d.unidad] || 0) + d.cant; });
     var totTxt = Object.keys(tot).map(function (u) { return cantTxt(Math.round(tot[u] * 100) / 100, u); }).join(' · ') || 'Sin dispensaciones';
-    var apMes = db.aportes.filter(function (a) { return a.estado === 'registrado' && a.fecha.slice(0, 7) === mes; }).reduce(function (s, a) { return s + a.cent; }, 0);
+    var apMesL = db.aportes.filter(function (a) { return a.estado === 'registrado' && a.fecha.slice(0, 7) === mes; });
+    var apMes = apMesL.reduce(function (s, a) { return s + a.cent; }, 0);
+    var apMig = apMesL.filter(function (a) { return a.mig; }), apMigT = apMig.reduce(function (s, a) { return s + a.cent; }, 0);
     var ong = CM.estadoRep(db.ong.reprocann);
 
     var al = [];
@@ -200,12 +202,12 @@
     }).join('') + '</tbody></table></div>' : tablaVacia('Todavía no hay dispensaciones.');
 
     return '<section class="card hero"><h1>Buscar paciente</h1><p style="margin:0;color:var(--mu)">Cada paciente tiene un <b>legajo único</b> que une la ficha, los Drive, el REPROCANN y la trazabilidad. Buscá por nombre, legajo, DNI, CUIT o CUIL.</p>' +
-      '<form data-form="buscar" autocomplete="off"><label class="sr" for="hq">Nombre, legajo, DNI, CUIT o CUIL del paciente</label><input id="hq" name="q" class="in" placeholder="Nombre, legajo o documento, p. ej. 99000001" aria-describedby="hqh"><button class="btn pri" type="submit">' + CM.icon('search') + 'Buscar</button><button class="btn" type="button" data-act="nuevo-paciente">' + CM.icon('plus') + 'Nuevo paciente</button></form>' +
-      '<p id="hqh" class="hint" style="margin:10px 0 0">Datos de ejemplo: probá con 99000001, 99000002 o 99000004, o escribí un nombre. El documento es opcional: un paciente puede no tenerlo.</p></section>' +
+      '<form data-form="buscar" autocomplete="off"><label class="sr" for="hq">Nombre, legajo, DNI, CUIT o CUIL del paciente</label><input id="hq" name="q" class="in" placeholder="Nombre, legajo o documento" aria-describedby="hqh"><button class="btn pri" type="submit">' + CM.icon('search') + 'Buscar</button><button class="btn" type="button" data-act="nuevo-paciente">' + CM.icon('plus') + 'Nuevo paciente</button></form>' +
+      '<p id="hqh" class="hint" style="margin:10px 0 0">' + (db.cfg.ejemplo && fcSim() ? 'Datos de ejemplo: probá con 99000001, 99000002 o 99000004, o escribí un nombre. ' : 'Escribí el nombre, el legajo o el documento. ') + 'El documento es opcional: un paciente puede no tenerlo.</p></section>' +
       '<div class="grid g4" style="margin-top:14px">' +
       '<div class="card kpi"><div class="l">Pacientes en el sistema</div><div class="v">' + pacs.length + '</div><div class="s">' + pacs.filter(function (p) { return p.historiaCompleta; }).length + ' con historia clínica completa</div></div>' +
       '<div class="card kpi"><div class="l">Dispensaciones del mes</div><div class="v">' + dm.length + '</div><div class="s">' + esc(totTxt) + '</div></div>' +
-      '<div class="card kpi"><div class="l">Donaciones voluntarias del mes</div><div class="v">' + esc(CM.fmtMoney(apMes)) + '</div><div class="s">Registrados, sin anulaciones</div></div>' +
+      '<div class="card kpi"><div class="l">Donaciones voluntarias del mes</div><div class="v">' + esc(CM.fmtMoney(apMes)) + '</div><div class="s">' + (apMig.length ? esc(CM.fmtMoney(apMes - apMigT)) + ' cargadas en este sistema · ' + esc(CM.fmtMoney(apMigT)) + ' importadas del sistema anterior (' + apMig.length + ')' : 'Registradas, sin anulaciones') + '</div></div>' +
       '<div class="card kpi"><div class="l">REPROCANN de la ONG</div><div class="v" style="font-size:1.2rem;padding:6px 0">' + repPill(ong) + '</div><div class="s">' + esc(repDetalle(ong)) + '</div></div></div>' +
       '<div class="grid g2" style="margin-top:14px"><section class="card"><div class="row sp"><h2>Alertas</h2><span class="pill p-mu">' + al.length + '</span></div>' +
       (al.length ? '<ul class="tl">' + al.slice(0, 10).map(function (a) { return '<li><span class="pill p-' + (a.t === 'bad' ? 'bad' : a.t === 'warn' ? 'warn' : 'info') + '">' + (a.t === 'bad' ? 'Urgente' : a.t === 'warn' ? 'Atención' : 'Aviso') + '</span> ' + a.h + '</li>'; }).join('') + '</ul>' : '<div class="note ok">Sin alertas pendientes.</div>') + '</section>' +
@@ -297,8 +299,8 @@
       kv('Motivo de consulta', p.motivo) + kv('Código de seguimiento REPROCANN', p.codSeg) + kv('Dudas, consultas o comentarios', p.dudas) + kv('Consentimiento informado', p.consentimiento ? 'Registrado el ' + CM.fmtFecha(p.consentimiento) : '') +
       '</div>' + (p.tel ? '<p style="margin:12px 0 0"><a class="btn sm" href="https://wa.me/' + esc(telWa(p.tel)) + '" target="_blank" rel="noopener noreferrer">WhatsApp al paciente</a> <span class="hint">Sólo para comunicaciones del tratamiento.</span></p>' : '') + '</section>';
 
-    var rep = '<section class="card" style="margin-top:14px"><div class="row sp"><h2>REPROCANN del paciente</h2><button class="btn sm" data-act="rep-edit" data-dni="' + esc(dni) + '">Actualizar estado</button></div>' +
-      '<div class="row">' + repPill(e) + '<span>' + esc(repDetalle(e)) + '</span></div><div class="kv" style="margin-top:12px">' + kv('Carnet', p.reprocann && p.reprocann.carnet ? 'Entregado' : 'No entregado') + kv('Código de vinculación / seguimiento', p.codSeg) + kv('Gramos de flores dispensados este mes', CM.fmtNum(gMes) + ' g') + '</div></section>';
+    var rep = '<section class="card" style="margin-top:14px"><div class="row sp"><h2>REPROCANN del paciente</h2><button class="btn sm" data-act="rep-edit" data-dni="' + esc(dni) + '">Actualizar estado y cultivo</button></div>' +
+      '<div class="row">' + repPill(e) + '<span>' + esc(repDetalle(e)) + '</span></div><div class="kv" style="margin-top:12px">' + kv('Carnet', p.reprocann && p.reprocann.carnet ? 'Entregado' : 'No entregado') + kv('Código de vinculación / seguimiento', p.codSeg) + kv('Gramos de flores dispensados este mes', CM.fmtNum(gMes) + ' g') + '</div><p style="margin:10px 0 0"><b>Domicilio de cultivo:</b> ' + cultivoPacTxt(p) + '</p></section>';
 
     var dh = disp.length ? '<div class="tw"><table><thead><tr><th>N.º</th><th>Fecha</th><th>Preparado</th><th class="n">Cantidad</th><th>Lote</th><th>Entregó</th><th></th></tr></thead><tbody>' + disp.map(function (d) {
       return '<tr' + (d.anulada ? ' class="anulada"' : '') + '><td>' + esc(d.id) + '</td><td>' + CM.fmtFecha(d.fecha) + '</td><td>' + esc(d.nombre) + '<br><small class="hint">' + esc(CM.PRODUCTOS[d.prod].n) + '</small></td><td class="n">' + esc(cantTxt(d.cant, d.unidad)) + '</td><td>' + esc(d.lote) + '</td><td>' + esc(d.user) + '</td><td>' +
@@ -326,7 +328,7 @@
     else if (c) cell = '<button class="btn sm" data-act="ver-comp" data-id="' + esc(c.id) + '">' + CM.icon('doc') + 'Factura C ' + esc(c.pv + '-' + c.nro) + '</button>';
     else cell = '<button class="btn sm pri" data-act="emitir-fc" data-id="' + esc(a.id) + '">Emitir Factura C (simulada)</button>';
     return '<tr' + (a.estado === 'anulado' ? ' class="anulada"' : '') + '><td>' + esc(a.id) + '</td><td>' + CM.fmtFecha(a.fecha) + '</td>' + (sinPac ? '' : '<td>' + (quienDe(a).pac ? '<a href="#/paciente/' + esc(a.dni) + '">' + esc(nombreCorto(quienDe(a).nom)) + '</a>' : esc(quienDe(a).nom)) + '<br><small class="hint">' + esc(quienDe(a).doc) + '</small></td>') +
-      '<td>' + esc(a.concepto) + '</td><td>' + esc(CM.MEDIOS[a.medio] || a.medio) + '</td><td class="n">' + esc(CM.fmtMoney(a.cent)) + '</td><td>' + cell + '</td></tr>';
+      '<td>' + esc(a.concepto) + '</td><td>' + esc(CM.medioTxt(a)) + '</td><td class="n">' + esc(CM.fmtMoney(a.cent)) + '</td><td>' + cell + '</td></tr>';
   }
   VIEWS.aportes = function () {
     var db = CM.db, mes = ($('#apMes') && $('#apMes').value) || CM.mesActual();
@@ -383,8 +385,8 @@
       [['', 'Todos (' + Object.keys(CM.db.pacientes).length + ')'], ['valido', 'Válidos (' + cnt.valido + ')'], ['prox', 'Vencen en 60 días'], ['vencido', 'Vencidos (' + cnt.vencido + ')'], ['tramite', 'En trámite (' + cnt.tramite + ')'], ['sin', 'Sin REPROCANN (' + cnt.sin + ')']].map(function (f) {
         return '<button type="button" data-act="rep-flt" data-v="' + f[0] + '" aria-pressed="' + (repFiltro === f[0]) + '">' + esc(f[1]) + '</button>';
       }).join('') + '</div>' +
-      (pacs.length ? '<div class="tw"><table><thead><tr><th>Documento</th><th>Paciente</th><th>Estado</th><th>Vencimiento</th><th>Carnet</th><th></th></tr></thead><tbody>' + pacs.map(function (x) {
-        return '<tr><td><b>' + esc(CM.docCorto(x.p)) + '</b></td><td><a href="#/paciente/' + esc(x.p.dni) + '">' + esc(nombreCorto(x.p.nombre)) + '</a></td><td>' + repPill(x.e) + '</td><td>' + (x.e.vence ? CM.fmtFecha(x.e.vence) : '—') + '</td><td>' + (x.p.reprocann && x.p.reprocann.carnet ? 'Sí' : 'No') + '</td><td><button class="btn sm" data-act="rep-edit" data-dni="' + esc(x.p.dni) + '">Actualizar</button></td></tr>';
+      (pacs.length ? '<div class="tw"><table><thead><tr><th>Documento</th><th>Paciente</th><th>Estado</th><th>Vencimiento</th><th>Carnet</th><th>Domicilio de cultivo</th><th></th></tr></thead><tbody>' + pacs.map(function (x) {
+        return '<tr><td><b>' + esc(CM.docCorto(x.p)) + '</b></td><td><a href="#/paciente/' + esc(x.p.dni) + '">' + esc(nombreCorto(x.p.nombre)) + '</a></td><td>' + repPill(x.e) + '</td><td>' + (x.e.vence ? CM.fmtFecha(x.e.vence) : '—') + '</td><td>' + (x.p.reprocann && x.p.reprocann.carnet ? 'Sí' : 'No') + '</td><td>' + cultivoPacTxt(x.p) + '</td><td><button class="btn sm" data-act="rep-edit" data-dni="' + esc(x.p.dni) + '">Actualizar</button></td></tr>';
       }).join('') + '</tbody></table></div>' : tablaVacia('Sin pacientes con ese estado.')) + '</section>';
   };
   CM.acts['rep-flt'] = function (t) { repFiltro = t.getAttribute('data-v'); render(); };
@@ -422,21 +424,21 @@
   }
   VIEWS.trazabilidad = function () {
     var db = CM.db, h = CM.hoy();
-    var stock = '<div class="tw"><table><thead><tr><th>Lote</th><th>Preparado</th><th>Tipo</th><th>Quimiotipo</th><th class="n">Ingresó</th><th class="n">Disponible</th><th>Estado</th></tr></thead><tbody>' + db.lotes.map(function (l) {
+    var stock = '<div class="tw"><table><thead><tr><th>Lote</th><th>Preparado</th><th>Tipo</th><th>Quimiotipo</th><th>Ciclo de origen</th><th class="n">Ingresó</th><th class="n">Disponible</th><th>Estado</th></tr></thead><tbody>' + db.lotes.map(function (l) {
       var s = CM.stockLote(l.id), ing = db.movs.filter(function (m) { return m.lote === l.id && m.tipo === 'ingreso'; }).reduce(function (a, m) { return a + m.cant; }, 0);
-      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td></tr>';
+      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td>' + (l.cu ? esc(cicloTxt(l.cu)) : '<span class="hint">Sin ciclo</span>') + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td></tr>';
     }).join('') + '</tbody></table></div>';
     var movs = db.movs.slice().sort(function (a, b) { return b.ts.localeCompare(a.ts) || b.id.localeCompare(a.id); }).slice(0, 25);
     var mt = '<div class="tw"><table><thead><tr><th>Fecha</th><th>Lote</th><th>Movimiento</th><th class="n">Cantidad</th><th>Referencia / motivo</th><th>Usuario</th></tr></thead><tbody>' + movs.map(function (m) {
       var l = CM.lote(m.lote);
       return '<tr><td>' + CM.fmtFecha(m.fecha) + '</td><td>' + esc(m.lote) + '</td><td>' + esc({ ingreso: 'Ingreso', dispensacion: 'Dispensación', ajuste: 'Ajuste', anulacion: 'Anulación de dispensación' }[m.tipo] || m.tipo) + '</td><td class="n">' + (m.cant > 0 ? '+' : '') + esc(CM.fmtNum(m.cant)) + ' ' + esc(l ? l.unidad === 'g' ? 'g' : 'u.' : '') + '</td><td>' + esc((m.ref ? m.ref + ' ' : '') + (m.motivo || '')) + '</td><td>' + esc(m.user) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
-    return '<div class="page-h"><div><h1>Trazabilidad</h1><p>Control de lotes y cantidades dispensadas para la auditoría interna. El stock se calcula sumando movimientos: nada se edita ni se borra, se corrige con un movimiento nuevo.</p></div>' +
-      '<div class="row"><button class="btn" data-act="lote-nuevo">' + CM.icon('plus') + 'Nuevo lote</button><button class="btn" data-act="stock-ajuste">Ajustar stock</button></div></div>' +
-      '<section class="card"><div class="row sp"><h2>Dispensaciones por período</h2><div class="row"><button class="btn sm" data-act="csv-disp">' + CM.icon('dl') + 'Exportar CSV</button><button class="btn sm" data-act="print-tr">' + CM.icon('print') + 'Imprimir informe</button></div></div>' +
+    return '<div class="page-h"><div><h1>Trazabilidad / Stock</h1><p>Control del stock de cada lote y de las cantidades dispensadas para la auditoría interna. El stock se calcula sumando movimientos: nada se edita ni se borra, se corrige con un movimiento nuevo.</p></div>' +
+      '<div class="row"><button class="btn" data-act="lote-nuevo">' + CM.icon('plus') + 'Nuevo lote</button><button class="btn" data-act="stock-ajuste">Ajustar stock</button><button class="btn" data-act="lote-ciclo">Ciclo de un lote</button></div></div>' +
+      '<section class="card"><h2>Stock disponible por lote</h2>' + stock + '</section>' +
+      '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Dispensaciones por período</h2><div class="row"><button class="btn sm" data-act="csv-disp">' + CM.icon('dl') + 'Exportar CSV</button><button class="btn sm" data-act="print-tr">' + CM.icon('print') + 'Imprimir informe</button></div></div>' +
       '<div class="row" style="margin:10px 0 14px"><label class="fl" style="max-width:190px"><span>Desde</span><input id="trDesde" type="date" class="in" value="' + h.slice(0, 8) + '01"></label><label class="fl" style="max-width:190px"><span>Hasta</span><input id="trHasta" type="date" class="in" value="' + h + '"></label>' +
       '<label class="fl" style="max-width:260px"><span>Preparado</span><select id="trProd" class="in">' + opt('', 'Todos', true) + Object.keys(CM.PRODUCTOS).map(function (k) { return opt(k, CM.PRODUCTOS[k].n); }).join('') + '</select></label></div><div id="trBody">' + trazabilidadCuerpo() + '</div></section>' +
-      '<section class="card" style="margin-top:14px"><h2>Stock disponible por lote</h2>' + stock + '</section>' +
       '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Últimos movimientos de stock</h2><button class="btn sm" data-act="csv-movs">' + CM.icon('dl') + 'Exportar CSV</button></div>' + mt + '</section>';
   };
   CM.acts['csv-disp'] = function () {
@@ -614,6 +616,20 @@
     try { navigator.clipboard.writeText(v).then(ok, function () { CM.toast('No se pudo copiar: seleccionalo manualmente.', true); }); } catch (e) { CM.toast('No se pudo copiar: seleccionalo manualmente.', true); }
   };
 
+  /* Domicilio de cultivo del paciente (pedido de la ONG, 2026-11-08): Autocultivo, ONG o «a completar». */
+  CM.CULT_TIPOS = { autocultivo: 'Autocultivo', ong: 'Cultiva la ONG', '': 'A completar' };
+  function cultivoPacTxt(p) {
+    var c = p && p.cultivo || {}, t = c.tipo || '';
+    if (!t) return '<span class="pill p-warn">A completar</span>';
+    return '<span class="pill ' + (t === 'ong' ? 'p-info' : 'p-ok') + '">' + esc(CM.CULT_TIPOS[t] || t) + '</span>' + (c.dir ? '<br><small class="hint">' + esc(c.dir) + '</small>' : '');
+  }
+  CM.cultivoPacTxt = cultivoPacTxt;
+  function cultivoCampos(c) {
+    c = c || {};
+    return '<fieldset><legend>Domicilio de cultivo</legend><div class="f f2">' + fl('¿Quién cultiva?', '<select class="in" name="cult">' + opt('', 'A completar', !c.tipo) + opt('autocultivo', 'Autocultivo (el paciente)', c.tipo === 'autocultivo') + opt('ong', 'Cultiva la ONG', c.tipo === 'ong') + '</select>') +
+      fl('Domicilio del cultivo', '<input class="in" name="cultDir" maxlength="160" value="' + esc(c.dir || '') + '" placeholder="Calle, número, localidad">') + '</div>' +
+      '<p class="hint" style="margin:0">Para autocultivo, cargá el domicilio declarado en el REPROCANN. Si cultiva la ONG, puede quedar vacío (se usa el de la ONG).</p></fieldset>';
+  }
   /* REPROCANN (paciente y ONG) */
   function repForm(titulo, dni, r, ong) {
     CM.modal.open({
@@ -621,7 +637,7 @@
       body: '<form id="fRP" data-form="rep" class="f" novalidate><input type="hidden" name="dni" value="' + esc(dni) + '">' +
         fl('Estado', '<select class="in" name="estado">' + opt('valido', 'Válido', r.estado === 'valido') + opt('tramite', 'En trámite', r.estado === 'tramite') + opt('vencido', 'Vencido', r.estado === 'vencido') + (ong ? '' : opt('sin', 'Sin REPROCANN', r.estado === 'sin' || !r.estado)) + '</select>') +
         fl('Fecha de vencimiento', '<input class="in" type="date" name="vence" value="' + esc(r.vence || '') + '">') +
-        (ong ? fl('N.º de inscripción de la ONG', '<input class="in" name="nro" value="' + esc(r.nroInscripcion || '') + '">') : '<label class="chk"><input type="checkbox" name="carnet"' + (r.carnet ? ' checked' : '') + '><span>Carnet entregado al paciente</span></label>') +
+        (ong ? fl('N.º de inscripción de la ONG', '<input class="in" name="nro" value="' + esc(r.nroInscripcion || '') + '">') : '<label class="chk"><input type="checkbox" name="carnet"' + (r.carnet ? ' checked' : '') + '><span>Carnet entregado al paciente</span></label>' + cultivoCampos((CM.paciente(dni) || {}).cultivo)) +
         '<p class="hint" style="margin:0">Cargá lo que figura en el sitio oficial del REPROCANN <b>[VERIFICAR vigencias en reprocann.msal.gob.ar]</b>.</p><p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fRP">Guardar</button>'
     });
@@ -633,8 +649,11 @@
     if (vence && !/^\d{4}-\d{2}-\d{2}$/.test(vence)) return fail(f, 'vence', 'Fecha inválida.');
     if (est === 'valido' && !vence) return fail(f, 'vence', 'Un permiso válido necesita fecha de vencimiento.');
     if (dni) {
-      var p = CM.paciente(dni); p.reprocann = { estado: est, vence: vence || null, carnet: e.carnet ? e.carnet.checked : false };
-      CM.audit('REPROCANN del paciente', 'Legajo ' + CM.legDe(dni) + ' → ' + CM.REP_LABEL[est] + (vence ? ' hasta ' + CM.fmtFecha(vence) : ''));
+      var p = CM.paciente(dni), ct = e.cult ? e.cult.value : '', cd = e.cultDir ? e.cultDir.value.trim().replace(/\s+/g, ' ').slice(0, 160) : '';
+      if (ct === 'autocultivo' && cd.length < 5) return fail(f, 'cultDir', 'Para autocultivo, cargá el domicilio del cultivo.');
+      p.reprocann = { estado: est, vence: vence || null, carnet: e.carnet ? e.carnet.checked : false };
+      var cAnt = JSON.stringify(p.cultivo || {}); p.cultivo = { tipo: ct, dir: cd };
+      CM.audit('REPROCANN del paciente', 'Legajo ' + CM.legDe(dni) + ' → ' + CM.REP_LABEL[est] + (vence ? ' hasta ' + CM.fmtFecha(vence) : '') + (cAnt !== JSON.stringify(p.cultivo) ? ' · domicilio de cultivo: ' + (CM.CULT_TIPOS[ct] || ct) : ''));
     } else {
       CM.db.ong.reprocann = { estado: est, vence: vence || null, nroInscripcion: e.nro.value.trim() };
       CM.audit('REPROCANN de la ONG', CM.REP_LABEL[est] + (vence ? ' hasta ' + CM.fmtFecha(vence) : ''));
@@ -672,15 +691,48 @@
     if ($('#dsObsReq')) $('#dsObsReq').textContent = r.pideObs ? ' *' : '';
   }
 
+  /* ---------- medio de la donación: uno solo o «mixto» (varios medios que suman el total) ---------- */
+  function fcSim() { return !(CM.nube && CM.nube.activa); }   /* la Factura C simulada sólo existe en la demo sin nube */
+  CM.fcSim = fcSim;
+  function medioSelect() {
+    return '<select class="in" name="medio" data-medio>' + Object.keys(CM.MEDIOS).map(function (k) { return opt(k, CM.MEDIOS[k]); }).join('') + opt('mixto', 'Mixto (varios medios)') + '</select>';
+  }
+  function mixtoHtml() {
+    return '<div class="card flat" data-mixto hidden><b>Pago mixto</b><p class="hint" style="margin:4px 0 8px">Cargá cuánto entró por cada medio. La suma tiene que dar exactamente el importe de la donación.</p><div class="f f2">' +
+      Object.keys(CM.MEDIOS).map(function (k) { return fl(CM.MEDIOS[k], '<input class="in num" name="mx_' + k + '" inputmode="decimal" placeholder="0">'); }).join('') + '</div><p class="hint" data-mxsum aria-live="polite"></p></div>';
+  }
+  CM.leerMixto = function (f, total) {
+    var pays = [], suma = 0, bad = '';
+    Object.keys(CM.MEDIOS).forEach(function (k) {
+      var inp = f.elements['mx_' + k]; if (!inp || !inp.value.trim()) return;
+      var v = CM.parseMonto(inp.value); if (isNaN(v) || v < 0) { bad = 'mx_' + k; return; }
+      if (v > 0) { pays.push({ m: k, a: v }); suma += v; }
+    });
+    if (bad) return { err: 'Revisá los importes del pago mixto.', campo: bad };
+    if (pays.length < 2) return { err: 'Un pago mixto necesita al menos dos medios con importe.', campo: 'mx_efectivo' };
+    if (suma !== total) return { err: 'La suma de los medios (' + CM.fmtMoney(suma) + ') no da el importe de la donación (' + CM.fmtMoney(total) + '): ' + (suma < total ? 'faltan ' + CM.fmtMoney(total - suma) : 'sobran ' + CM.fmtMoney(suma - total)) + '.', campo: 'mx_efectivo' };
+    return { pays: pays };
+  };
+  function mixtoSuma(f) {
+    var box = f.querySelector('[data-mxsum]'); if (!box) return;
+    var tot = CM.parseMonto((f.elements.aporte || f.elements.importe || {}).value || ''), s = 0;
+    Object.keys(CM.MEDIOS).forEach(function (k) { var i = f.elements['mx_' + k]; if (i && i.value.trim()) { var v = CM.parseMonto(i.value); if (!isNaN(v)) s += v; } });
+    box.textContent = 'Suma: ' + CM.fmtMoney(s) + (isNaN(tot) || !tot ? '' : (s === tot ? ' · cierra con el importe.' : s < tot ? ' · faltan ' + CM.fmtMoney(tot - s) + '.' : ' · sobran ' + CM.fmtMoney(s - tot) + '.'));
+  }
+  document.addEventListener('change', function (ev) {
+    var t = ev.target; if (!t || !t.hasAttribute || !t.hasAttribute('data-medio') || !t.form) return;
+    var b = t.form.querySelector('[data-mixto]'); if (b) { b.hidden = t.value !== 'mixto'; mixtoSuma(t.form); }
+  });
+  document.addEventListener('input', function (ev) {
+    var t = ev.target; if (!t || !t.form || !t.form.querySelector('[data-mixto]')) return;
+    if (/^mx_/.test(t.name) || t.name === 'aporte' || t.name === 'importe') mixtoSuma(t.form);
+  });
+
   /* ---------- dispensar ---------- */
   CM.acts.dispensar = function (t) { modalDispensar(t.getAttribute('data-dni') || ''); };
-  /* Origen de cultivo (4.28.1): cada dispensación referencia el ciclo del que sale; sin ciclo válido se rechaza */
-  function ciclosActivos() { return (CM.db.cultivos || []).filter(function (c) { return c.estado === 'activo'; }); }
-  function origenCultivoHtml() {
-    var cs = ciclosActivos();
-    if (!cs.length) return '<div class="note warn">No hay ciclos de cultivo activos: la dispensación se registra <b>sin origen de cultivo</b>. Creá un ciclo en Trazabilidad → Planilla de cultivo.</div>';
-    return fl('Origen de cultivo (ciclo) *', '<select class="in" name="cu"><option value="">Elegí el ciclo de origen…</option>' + cs.map(function (c) { return opt(c.id, c.id + ' · ' + c.nombre + (c.variedad ? ' · ' + c.variedad : '')); }).join('') + '</select>');
-  }
+  /* Origen de cultivo (4.28.1): sale solo del lote elegido (el lote guarda su ciclo). No se elige a mano en la dispensación. */
+  function cicloTxt(cu) { var c = CM.cultivo ? CM.cultivo(cu) : null; return c ? c.nombre + ' · ' + c.id : cu; }
+  CM.cicloTxt = cicloTxt;
   function modalDispensar(dni) {
     var p = dni ? CM.paciente(dni) : null;
     var lotes = CM.db.lotes, grupos = '';
@@ -693,16 +745,16 @@
       title: 'Registrar dispensación', wide: true,
       body: '<form id="fDS" data-form="dispensar" class="f" autocomplete="off" novalidate>' +
         (p ? '<input type="hidden" name="dni" value="' + esc(dni) + '"><div class="card flat"><b>' + esc(p.nombre) + '</b> · ' + esc(CM.idTxt(p)) + ' ' + repPill(CM.estadoRep(p.reprocann)) + '</div>' :
-          fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" id="dsDni" name="dni" autocomplete="off" placeholder="Ej.: María, L-251015-… o 99000001"><span id="dsPac" class="hint" aria-live="polite"></span>')) +
+          fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" id="dsDni" name="dni" autocomplete="off" placeholder="Escribí nombre, legajo o documento"><span id="dsPac" class="hint" aria-live="polite"></span>')) +
         '<div id="dsAvisos" aria-live="polite"></div>' +
         fl('Preparado y lote *', '<select class="in" id="dsLote" name="lote"><option value="">Elegí un preparado…</option>' + grupos + '</select>') +
-        origenCultivoHtml() +
+        '<p id="dsCu" class="hint" aria-live="polite" style="margin:-4px 0 0"></p>' +
         '<div class="f f2">' + flr('Cantidad entregada * <span id="dsUni" style="color:var(--ac)"></span>', '<input class="in num" name="cant" inputmode="decimal" placeholder="0"><span id="dsDisp" class="hint"></span>') +
         fl('Indicación / posología', '<input class="in" name="indic" placeholder="Según indicación médica">') + '</div>' +
         flr('Observación<span id="dsObsReq"></span>', '<textarea class="in" name="obs" style="min-height:64px" placeholder="Obligatoria si el REPROCANN está en trámite, sin cargar o se supera el tope"></textarea>') +
         '<fieldset><legend>Donación voluntaria (opcional)</legend><div class="f f2">' + fl('Importe de la donación', '<input class="in num" name="aporte" inputmode="decimal" placeholder="0">') +
-        fl('Medio', '<select class="in" name="medio">' + Object.keys(CM.MEDIOS).map(function (k) { return opt(k, CM.MEDIOS[k]); }).join('') + '</select>') + '</div>' +
-        '<label class="chk" style="margin-top:10px"><input type="checkbox" name="fc" checked><span>Emitir Factura C simulada si hay donación</span></label></fieldset>' +
+        fl('Medio', medioSelect()) + '</div>' + mixtoHtml() +
+        (fcSim() ? '<label class="chk" style="margin-top:10px"><input type="checkbox" name="fc" checked><span>Emitir Factura C simulada si hay donación</span></label>' : '') + '</fieldset>' +
         '<p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fDS">Confirmar dispensación</button>'
     });
@@ -710,7 +762,8 @@
   }
   function actualizarLote() {
     var sel = $('#dsLote'); if (!sel) return;
-    var l = CM.lote(sel.value), u = $('#dsUni'), d = $('#dsDisp');
+    var l = CM.lote(sel.value), u = $('#dsUni'), d = $('#dsDisp'), oc = $('#dsCu');
+    if (oc) oc.innerHTML = !l ? '' : l.cu ? 'Origen de cultivo: <b>' + esc(cicloTxt(l.cu)) + '</b> (sale del lote).' : 'Este lote no tiene ciclo de cultivo asignado: la dispensación queda sin origen. Se asigna en Trazabilidad / Stock → «Ciclo de un lote».';
     if (!l) { u.textContent = ''; d.textContent = ''; return; }
     u.textContent = '(' + (l.unidad === 'g' ? 'gramos' : l.unidad === 'frasco' ? 'frascos' : 'unidades') + ')';
     d.textContent = 'Disponible: ' + cantTxt(CM.stockLote(l.id), l.unidad);
@@ -728,11 +781,7 @@
     if (cant > stock) return fail(f, 'cant', 'No alcanza el stock del lote: quedan ' + cantTxt(stock, l.unidad) + '.');
     var reglas = CM.reglasDispensar(p);
     if (reglas.bloquea) return fail(f, '', 'No se puede dispensar: ' + reglas.msgs.filter(function (m) { return m.t === 'bad'; }).map(function (m) { return m.m; }).join(' '));
-    var cu = e.cu ? e.cu.value : '';
-    if (ciclosActivos().length) {
-      var cic = CM.cultivo ? CM.cultivo(cu) : null;
-      if (!cic || cic.estado !== 'activo') return fail(f, 'cu', 'Elegí el origen de cultivo (ciclo activo): toda dispensación referencia su ciclo.');
-    }
+    var cu = l.cu || '';
     var obs = e.obs.value.trim(), pideObs = reglas.pideObs, tope = CM.db.cfg.topeMensualG;
     if (l.unidad === 'g' && tope && CM.gramosMes(dni, CM.mesActual()) + cant > tope) {
       pideObs = true;
@@ -740,7 +789,9 @@
     }
     if (pideObs && !obs) return fail(f, 'obs', 'Falta la observación (obligatoria por el estado del REPROCANN).');
     var aporte = 0;
-    if (e.aporte.value.trim()) { aporte = CM.parseMonto(e.aporte.value); if (isNaN(aporte)) return fail(f, 'aporte', 'La donación no es un importe válido (ej.: 15.000 o 15000,50).'); }
+    if (e.aporte.value.trim()) { aporte = CM.parseMonto(e.aporte.value); if (isNaN(aporte) || aporte < 0) return fail(f, 'aporte', 'La donación no es un importe válido (ej.: 15.000 o 15000,50).'); }
+    var mix = null;
+    if (aporte > 0 && e.medio.value === 'mixto') { mix = CM.leerMixto(f, aporte); if (mix.err) return fail(f, mix.campo, mix.err); }
     f.dataset.busy = '1';
     var h = CM.hoy(), id = CM.nextId('D');
     CM.db.disp.push({ id: id, fecha: h, ts: new Date().toISOString(), dni: dni, lote: l.id, prod: l.prod, nombre: l.nombre, quim: l.quim, unidad: l.unidad, cant: cant, indic: e.indic.value.trim(), obs: obs, user: CM.db.cfg.operador, aporte: '', anulada: null, cu: cu || '', tipoSeg: 'dispensación' });
@@ -748,9 +799,10 @@
     var ap = null, comp = null;
     if (aporte > 0) {
       ap = { id: CM.nextId('A'), fecha: h, ts: new Date().toISOString(), dni: dni, disp: id, cent: aporte, medio: e.medio.value, concepto: 'Donación voluntaria', obs: '', user: CM.db.cfg.operador, estado: 'registrado', comp: '' };
+      if (mix) ap.pays = mix.pays;
       CM.db.aportes.push(ap); CM.db.disp[CM.db.disp.length - 1].aporte = ap.id;
-      CM.audit('Donación voluntaria', ap.id + ' · Legajo ' + CM.legDe(dni) + ' · ' + CM.fmtMoney(aporte));
-      if (e.fc.checked) { comp = CM.emitirFacturaC(ap); CM.audit('Factura C simulada', comp.pv + '-' + comp.nro + ' · ' + ap.id); }
+      CM.audit('Donación voluntaria', ap.id + ' · Legajo ' + CM.legDe(dni) + ' · ' + CM.fmtMoney(aporte) + ' · ' + CM.medioTxt(ap));
+      if (e.fc && e.fc.checked) { comp = CM.emitirFacturaC(ap); CM.audit('Factura C simulada', comp.pv + '-' + comp.nro + ' · ' + ap.id); }
     }
     CM.audit('Dispensación', id + ' · Legajo ' + CM.legDe(dni) + (cu ? ' · ciclo ' + cu : '') + ' · ' + l.nombre + ' · ' + cantTxt(cant, l.unidad) + (obs ? ' · obs: ' + obs : ''));
     CM.save(); CM.modal.close(true); render();
@@ -815,10 +867,10 @@
         (p ? '<input type="hidden" name="dni" value="' + esc(dni) + '"><div class="card flat"><b>' + esc(p.nombre) + '</b> · ' + esc(CM.idTxt(p)) + '</div>' : fl('Paciente (opcional: nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" id="apDni" name="dni" autocomplete="off" placeholder="Dejalo vacío si no está identificado"><span id="apPac" class="hint" aria-live="polite"></span>') +
           '<div id="apDonante" class="card flat"><b>Donante (opcional)</b><p class="hint" style="margin:4px 0 8px">Si no cargás nada, se registra como consumidor final. El documento no es obligatorio.</p>' + fl('Nombre del donante', '<input class="in" name="dnom" autocomplete="off">') + CM.docCampos(null) + '</div>') +
         '<div class="f f2">' + fl('Concepto', '<select class="in" name="concepto">' + CM.CONCEPTOS.map(function (c) { return opt(c, c); }).join('') + '</select>') +
-        fl('Medio', '<select class="in" name="medio">' + Object.keys(CM.MEDIOS).map(function (k) { return opt(k, CM.MEDIOS[k]); }).join('') + '</select>') + '</div>' +
-        fl('Importe de la donación (en pesos) *', '<input class="in num" name="importe" inputmode="decimal" placeholder="0" style="font-size:20px">') +
+        fl('Medio', medioSelect()) + '</div>' +
+        fl('Importe de la donación (en pesos) *', '<input class="in num" name="importe" inputmode="decimal" placeholder="0" style="font-size:20px">') + mixtoHtml() +
         fl('Observación', '<input class="in" name="obs" placeholder="Opcional">') +
-        '<label class="chk"><input type="checkbox" name="fc" checked><span>Emitir Factura C simulada ahora</span></label><p class="err" role="alert" data-err></p></form>',
+        (fcSim() ? '<label class="chk"><input type="checkbox" name="fc" checked><span>Emitir Factura C simulada ahora</span></label>' : '') + '<p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fAP">Registrar donación</button>'
     });
   }
@@ -838,14 +890,17 @@
       if (!vd.ok) return fail(f, 'ndoc', vd.err);
       rec = { nombre: e.dnom ? e.dnom.value.trim().replace(/\s+/g, ' ') : '', doc: vd.doc };
       var um = CM.umbralDoc();
-      if (e.fc.checked && um && cent >= um && !rec.doc) return fail(f, 'ndoc', 'Para este importe se pide identificar al receptor de la Factura C (documento, CUIT o CUIL). El tope lo define la ONG en Ajustes [VERIFICAR en arca.gob.ar]. También podés registrar la donación sin Factura C.');
+      if (e.fc && e.fc.checked && um && cent >= um && !rec.doc) return fail(f, 'ndoc', 'Para este importe se pide identificar al receptor de la Factura C (documento, CUIT o CUIL). El tope lo define la ONG en Ajustes [VERIFICAR en arca.gob.ar]. También podés registrar la donación sin Factura C.');
     }
+    var mixA = null;
+    if (e.medio.value === 'mixto') { mixA = CM.leerMixto(f, cent); if (mixA.err) return fail(f, mixA.campo, mixA.err); }
     f.dataset.busy = '1';
     var dni = p ? p.dni : '';
     var a = { id: CM.nextId('A'), fecha: CM.hoy(), ts: new Date().toISOString(), dni: dni, rec: rec, disp: '', cent: cent, medio: e.medio.value, concepto: e.concepto.value, obs: e.obs.value.trim(), user: CM.db.cfg.operador, estado: 'registrado', comp: '' };
-    CM.db.aportes.push(a); CM.audit('Donación voluntaria', a.id + ' · ' + (p ? 'Legajo ' + CM.legDe(dni) : 'donante ' + (rec.doc ? CM.fmtDoc(rec.doc) : 'sin documento')) + ' · ' + CM.fmtMoney(cent) + ' · ' + a.concepto);
+    if (mixA) a.pays = mixA.pays;
+    CM.db.aportes.push(a); CM.audit('Donación voluntaria', a.id + ' · ' + (p ? 'Legajo ' + CM.legDe(dni) : 'donante ' + (rec.doc ? CM.fmtDoc(rec.doc) : 'sin documento')) + ' · ' + CM.fmtMoney(cent) + ' · ' + a.concepto + ' · ' + CM.medioTxt(a));
     var c = null;
-    if (e.fc.checked) { c = CM.emitirFacturaC(a); CM.audit('Factura C simulada', c.pv + '-' + c.nro + ' · ' + a.id); }
+    if (e.fc && e.fc.checked) { c = CM.emitirFacturaC(a); CM.audit('Factura C simulada', c.pv + '-' + c.nro + ' · ' + a.id); }
     CM.save(); CM.modal.close(true); render();
     if (c) verComprobante(c.id); else CM.toast('Donación registrada.');
   };
@@ -946,9 +1001,38 @@
         fl('Tipo de preparado *', '<select class="in" name="prod">' + Object.keys(CM.PRODUCTOS).map(function (k) { return opt(k, CM.PRODUCTOS[k].n + ' (' + CM.PRODUCTOS[k].un + ')'); }).join('') + '</select>') +
         fl('Nombre / genética *', '<input class="in" name="nombre" placeholder="Ej.: Fancy Q1">') +
         '<div class="f f2">' + fl('Quimiotipo', '<input class="in" name="quim" placeholder="Q1, Q2, Q3…">') + fl('Cantidad que ingresa *', '<input class="in num" name="cant" inputmode="decimal" placeholder="0">') + '</div>' +
-        fl('Aviso de stock bajo desde', '<input class="in num" name="min" inputmode="decimal" placeholder="' + CM.db.cfg.stockBajoDefault + '">') + '<p class="err" role="alert" data-err></p></form>',
+        fl('Aviso de stock bajo desde', '<input class="in num" name="min" inputmode="decimal" placeholder="' + CM.db.cfg.stockBajoDefault + '">') + cicloSelect('') + '<p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fLN">Crear lote</button>'
     });
+  };
+  function cicloSelect(v) {
+    var cs = (CM.db.cultivos || []).slice().sort(function (a, b) { return (a.estado !== 'activo') - (b.estado !== 'activo') || String(b.inicio).localeCompare(String(a.inicio)); });
+    if (!cs.length) return '<p class="hint">Todavía no hay ciclos de cultivo: el lote queda sin origen. Se puede asignar después.</p>';
+    return fl('Ciclo de cultivo de origen', '<select class="in" name="cu"><option value="">Sin ciclo (se asigna después)</option>' + cs.map(function (c) { return opt(c.id, c.nombre + ' · ' + c.id + (c.estado !== 'activo' ? ' (cerrado)' : ''), c.id === v); }).join('') + '</select>') +
+      '<p class="hint" style="margin:-4px 0 0">Las dispensaciones de este lote toman este origen solas.</p>';
+  }
+  CM.acts['lote-ciclo'] = function () {
+    if (!CM.need('trazabilidad', 'edit')) return;
+    CM.modal.open({
+      title: 'Ciclo de cultivo de un lote',
+      body: '<form id="fLC" data-form="lote-ciclo" class="f" autocomplete="off" novalidate>' +
+        fl('Lote *', '<select class="in" name="lote"><option value="">Elegí un lote…</option>' + CM.db.lotes.map(function (l) { return opt(l.id, l.nombre + ' · ' + l.id + (l.cu ? ' · ' + cicloTxt(l.cu) : ' · sin ciclo')); }).join('') + '</select>') +
+        cicloSelect('') + fl('Motivo (obligatorio si el lote ya tenía ciclo)', '<input class="in" name="motivo" maxlength="120">') +
+        '<p class="hint" style="margin:0">Cambia el origen de las <b>próximas</b> dispensaciones del lote. Las ya registradas conservan el origen con el que se hicieron.</p><p class="err" role="alert" data-err></p></form>',
+      footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fLC">Guardar</button>'
+    });
+  };
+  CM.forms['lote-ciclo'] = function (f) {
+    if (!CM.need('trazabilidad', 'edit')) return;
+    var e = f.elements, l = CM.lote(e.lote.value); if (!l) return fail(f, 'lote', 'Elegí un lote.');
+    var cu = e.cu ? e.cu.value : '';
+    if (cu && !(CM.cultivo && CM.cultivo(cu))) return fail(f, 'cu', 'Elegí un ciclo válido.');
+    if ((l.cu || '') === cu) return fail(f, 'cu', 'El lote ya tiene ese ciclo.');
+    var mot = e.motivo.value.trim(); if (l.cu && mot.length < 4) return fail(f, 'motivo', 'Escribí el motivo del cambio.');
+    (l.cuHist = l.cuHist || []).push({ ts: new Date().toISOString(), user: CM.db.cfg.operador, antes: l.cu || '', despues: cu, motivo: mot || 'Asignación inicial' });
+    var antes = l.cu || ''; l.cu = cu;
+    CM.audit('Lote: ciclo de cultivo', l.id + ' · ' + (antes ? cicloTxt(antes) : 'sin ciclo') + ' → ' + (cu ? cicloTxt(cu) : 'sin ciclo') + (mot ? ' · ' + mot : ''));
+    CM.save(); CM.modal.close(true); render(); CM.toast('Ciclo del lote actualizado.');
   };
   CM.forms.lote = function (f) {
     var e = f.elements, nombre = e.nombre.value.trim(), cant = CM.parseCant(e.cant.value);
@@ -960,7 +1044,8 @@
     if (un !== 'g' && Math.round(cant) !== cant) return fail(f, 'cant', 'Los frascos y las unidades son enteros.');
     var ab = CM.norm(nombre).replace(/[^a-z0-9]/g, '').slice(0, 3).toUpperCase() || 'LOT', id = 'L-' + yymm() + '-' + ab, n = 1;
     while (CM.lote(id)) { n++; id = 'L-' + yymm() + '-' + ab + n; }
-    CM.db.lotes.push({ id: id, prod: prod, nombre: nombre, quim: e.quim.value.trim() || '—', unidad: un, min: min, ingreso: CM.hoy() });
+    var cuL = e.cu ? e.cu.value : ''; if (cuL && !(CM.cultivo && CM.cultivo(cuL))) cuL = '';
+    CM.db.lotes.push({ id: id, prod: prod, nombre: nombre, quim: e.quim.value.trim() || '—', unidad: un, min: min, ingreso: CM.hoy(), cu: cuL });
     CM.addMov(id, 'ingreso', cant, '', 'Ingreso inicial del lote');
     CM.audit('Nuevo lote', id + ' · ' + nombre + ' · ' + cantTxt(cant, un)); CM.save(); CM.modal.close(true); render(); CM.toast('Lote ' + id + ' creado.');
   };

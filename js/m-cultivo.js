@@ -6,7 +6,13 @@
   var CM = g.CM, esc = CM.esc, U = CM.U, fl = U.fl, opt = U.opt, fail = U.fail, $ = U.$, VIEWS = CM.VIEWS;
   var render = function () { CM.render(); };
   var HOJA = 25;                                    /* filas por hoja impresa, igual que la planilla en papel */
-  CM.FASES = ['Germinación', 'Plántula', 'Vegetativo', 'Pre-floración', 'Floración', 'Lavado de raíces', 'Cosecha', 'Secado', 'Curado'];   /* [VERIFICAR con el equipo técnico de la ONG] */
+  /* Fases pedidas por el equipo de la ONG (2026-11-08): después de Floración vienen Stretching, Engorde, Maduración y Lavado de raíces (washing).
+     El valor guardado de «Lavado de raíces» no cambia, para que los registros anteriores sigan siendo válidos. */
+  CM.FASES = ['Germinación', 'Plántula', 'Vegetativo', 'Pre-floración', 'Floración', 'Stretching', 'Engorde', 'Maduración', 'Lavado de raíces', 'Cosecha', 'Secado', 'Curado'];
+  CM.FASE_L = { 'Lavado de raíces': 'Lavado de raíces (washing)' };
+  function faseL(x) { return CM.FASE_L[x] || x; }
+  CM.GEN_TIPOS = ['Índica', 'Sativa', 'Híbrida', 'Autofloreciente', 'CBD', 'Otra'];
+  CM.GEN_ESTADOS = ['Sana', 'En observación', 'Con plaga o enfermedad', 'Cosechada', 'Descartada'];
   CM.cu = CM.cu || { sel: '', ver: 'todas' };
 
   /* ---------- permisos: módulo propio "cultivo" ---------- */
@@ -86,7 +92,7 @@
     var sel = CM.cultivo(CM.cu.sel);
     var lista = cs.length ? '<div class="tw"><table><thead><tr><th>Ciclo</th><th>Lote / sala</th><th>Inicio</th><th class="n">Registros</th><th>Estado</th><th>Drive</th><th></th></tr></thead><tbody>' + cs.map(function (c) {
       var n = CM.cultivoRegs(c.id).length, v = (c.drive && c.drive.versiones || []).length;
-      return '<tr' + (c.id === CM.cu.sel ? ' class="sel"' : '') + '><td><b>' + esc(c.id) + '</b><br><small class="hint">' + esc(c.nombre) + '</small></td><td>' + esc(c.lote) + '</td><td>' + CM.fmtFecha(c.inicio) + '</td><td class="n">' + n + '</td><td>' +
+      return '<tr' + (c.id === CM.cu.sel ? ' class="sel"' : '') + '><td><b class="cu-nom">' + esc(c.nombre) + '</b><br><small class="hint cu-cod">' + esc(c.id) + '</small></td><td>' + esc(c.lote) + '</td><td>' + CM.fmtFecha(c.inicio) + '</td><td class="n">' + n + '</td><td>' +
         (c.estado === 'activo' ? '<span class="pill p-ok">Activo</span>' : '<span class="pill p-warn">Cerrado</span>') + (c.ejemplo ? ' <span class="pill">Ejemplo</span>' : '') + '</td><td>' + (v ? '<span class="pill p-ok">' + v + ' versión(es)</span>' : '<span class="hint">Sin guardar</span>') + '</td><td><button class="btn sm' + (c.id === CM.cu.sel ? ' pri' : '') + '" data-act="cu-ver" data-id="' + esc(c.id) + '">' + (c.id === CM.cu.sel ? 'Abierto' : 'Abrir planilla') + '</button></td></tr>';
     }).join('') + '</tbody></table></div>' : '<div class="empty">Todavía no hay ciclos de cultivo. Creá el primero con “Nuevo ciclo”.</div>';
     return '<div class="page-h"><div><h1>Planilla de seguimiento de cultivo</h1><p>Un ciclo por lote o sala. Cada día se carga un registro con riego, humedad, temperatura y runoff. Los registros no se borran: se corrigen con motivo o se anulan, y todo queda en la auditoría.</p></div>' +
@@ -102,7 +108,7 @@
       '<div class="card flat"><small class="hint">Registros</small><br><b style="font-size:22px">' + activos.length + '</b>' + (regs.length > activos.length ? ' <small class="hint">(+' + (regs.length - activos.length) + ' anulados)</small>' : '') + '</div></div>';
     var filas = regs.map(function (r) {
       var cls = r.anulada ? ' style="opacity:.55;text-decoration:line-through"' : '';
-      return '<tr' + cls + '><td class="n">' + r.n + '</td><td>' + CM.fmtFecha(r.fecha) + '</td><td class="n">' + r.dia + '</td><td class="n">' + r.sem + '</td><td>' + esc(r.fase) + '</td><td class="n">' + nf(r.ph) + '</td><td class="n">' + nf(r.ec) + '</td><td class="n">' + nf(r.h) + '</td><td class="n">' + nf(r.temp) + '</td><td class="n">' + nf(r.roph) + '</td><td class="n">' + nf(r.roec) + '</td><td>' + esc(r.obs || '') + (r.anulada ? '<br><small class="hint">Anulado: ' + esc(r.anulada.motivo) + '</small>' : (r.hist && r.hist.length ? '<br><small class="hint">Corregido ' + r.hist.length + ' vez/veces</small>' : '')) + '</td><td>' + esc(r.enc) + '</td><td>' +
+      return '<tr' + cls + '><td class="n">' + r.n + '</td><td>' + CM.fmtFecha(r.fecha) + '</td><td class="n">' + r.dia + '</td><td class="n">' + r.sem + '</td><td>' + esc(faseL(r.fase)) + '</td><td class="n">' + nf(r.ph) + '</td><td class="n">' + nf(r.ec) + '</td><td class="n">' + nf(r.h) + '</td><td class="n">' + nf(r.temp) + '</td><td class="n">' + nf(r.roph) + '</td><td class="n">' + nf(r.roec) + '</td><td>' + esc(r.obs || '') + (r.anulada ? '<br><small class="hint">Anulado: ' + esc(r.anulada.motivo) + '</small>' : (r.hist && r.hist.length ? '<br><small class="hint">Corregido ' + r.hist.length + ' vez/veces</small>' : '')) + '</td><td>' + esc(r.enc) + '</td><td>' +
         (edit && !r.anulada ? '<div class="row"><button class="btn sm" data-act="cr-edit" data-id="' + esc(r.id) + '" aria-label="Corregir registro ' + r.n + '">' + CM.icon('edit') + '</button><button class="btn sm" data-act="cr-anular" data-id="' + esc(r.id) + '" aria-label="Anular registro ' + r.n + '">' + CM.icon('x') + '</button></div>' : '') + '</td></tr>';
     }).join('');
     var tabla = '<div class="tw"><table class="cult"><thead><tr><th rowspan="2" class="n">N°</th><th rowspan="2">Fecha</th><th rowspan="2" class="n">Día</th><th rowspan="2" class="n">Semana</th><th rowspan="2">Fase</th><th colspan="2" class="c">Riego</th><th rowspan="2" class="n">H %</th><th rowspan="2" class="n">Temp °C</th><th colspan="2" class="c">R. Off</th><th rowspan="2">Observaciones</th><th rowspan="2">Encargado</th><th rowspan="2"></th></tr><tr><th class="n">PH</th><th class="n">EC</th><th class="n">PH</th><th class="n">EC</th></tr></thead><tbody>' +
@@ -115,8 +121,68 @@
       (abierto && CM.can('cultivo', 'oper') ? '<button class="btn pri" data-act="cr-nuevo" data-id="' + esc(c.id) + '">' + CM.icon('plus') + 'Agregar registro</button>' : '') +
       '<button class="btn" data-act="cu-print" data-id="' + esc(c.id) + '">' + CM.icon('print') + 'Imprimir planilla</button><button class="btn" data-act="cu-csv" data-id="' + esc(c.id) + '">' + CM.icon('dl') + 'Exportar CSV</button>' +
       (CM.can('cultivo', 'admin') ? (abierto ? '<button class="btn" data-act="cu-cerrar" data-id="' + esc(c.id) + '">' + CM.icon('lock') + 'Cerrar ciclo</button>' : '<button class="btn" data-act="cu-reabrir" data-id="' + esc(c.id) + '">' + CM.icon('undo') + 'Reabrir</button>') : '') + '</div></div>' +
-      (abierto ? '' : '<div class="note info" style="margin-top:10px">Este ciclo está cerrado: no admite registros ni correcciones. Un administrador puede reabrirlo (queda auditado).</div>') + st + tabla + drive + '</section>';
+      geneticasHtml(c) + (abierto ? '' : '<div class="note info" style="margin-top:10px">Este ciclo está cerrado: no admite registros ni correcciones. Un administrador puede reabrirlo (queda auditado).</div>') + st + tabla + drive + '</section>';
   }
+  /* ---------- genéticas del espacio (sala / carpa): variedad, tipo, plantas, estado y observaciones ----------
+     Cada cambio guarda lo anterior, quién y cuándo; una genética no se borra: se marca «Descartada» o «Cosechada». */
+  function geneticasHtml(c) {
+    var gs = c.geneticas || [], puede = c.estado === 'activo' && CM.can('cultivo', 'oper');
+    var vivas = gs.filter(function (x) { return ['Cosechada', 'Descartada'].indexOf(x.estado) < 0; });
+    var tot = vivas.reduce(function (a, x) { return a + (x.plantas || 0); }, 0);
+    return '<div class="cu-gen"><div class="row sp" style="margin-top:10px"><h3 style="margin:0">Genéticas en este espacio</h3>' + (puede ? '<button class="btn sm" data-act="gen-nueva" data-id="' + esc(c.id) + '">' + CM.icon('plus') + 'Agregar genética</button>' : '') + '</div>' +
+      (gs.length ? '<div class="tw"><table><thead><tr><th>Variedad</th><th>Tipo</th><th class="n">Plantas</th><th>Estado</th><th>Observaciones</th><th></th></tr></thead><tbody>' + gs.map(function (x) {
+        var cls = { 'Sana': 'p-ok', 'En observación': 'p-warn', 'Con plaga o enfermedad': 'p-bad', 'Cosechada': 'p-info', 'Descartada': 'p-mu' }[x.estado] || '';
+        return '<tr><td><b>' + esc(x.variedad) + '</b></td><td>' + esc(x.tipo || '—') + '</td><td class="n">' + (x.plantas == null ? '—' : x.plantas) + '</td><td><span class="pill ' + cls + '">' + esc(x.estado || '—') + '</span></td><td>' + esc(x.obs || '') + ((x.hist || []).length ? '<br><small class="hint">Modificada ' + x.hist.length + ' vez/veces</small>' : '') + '</td><td>' +
+          (puede ? '<button class="btn sm" data-act="gen-editar" data-id="' + esc(c.id) + '" data-g="' + esc(x.id) + '">' + CM.icon('edit') + 'Editar</button>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div><p class="hint" style="margin:6px 0 0">Total de plantas activas: <b>' + tot + '</b>' + (vivas.length !== gs.length ? ' (sin contar cosechadas ni descartadas)' : '') + '.</p>' :
+        '<p class="hint" style="margin:6px 0 0">Todavía no hay genéticas cargadas en este espacio.' + (puede ? ' Agregá cada variedad con su cantidad de plantas.' : '') + '</p>') + '</div>';
+  }
+  function genForm(c, x) {
+    x = x || { variedad: '', tipo: '', plantas: null, estado: 'Sana', obs: '' };
+    var vars = {}; (CM.db.cultivos || []).forEach(function (cc) { (cc.geneticas || []).forEach(function (y) { vars[y.variedad] = 1; }); if (cc.variedad) vars[cc.variedad] = 1; });
+    return '<form id="fGE" data-form="gen-guardar" class="f" autocomplete="off" novalidate><input type="hidden" name="cu" value="' + esc(c.id) + '"><input type="hidden" name="gid" value="' + esc(x.id || '') + '">' +
+      fl('Variedad (genética / cepa) *', '<input class="in" name="vari" maxlength="80" list="geVars" value="' + esc(x.variedad) + '" placeholder="Ej.: Fancy Mood"><datalist id="geVars">' + Object.keys(vars).sort().map(function (v) { return '<option value="' + esc(v) + '">'; }).join('') + '</datalist>') +
+      '<div class="f f2">' + fl('Tipo de variedad', '<select class="in" name="tipo"><option value="">Sin dato</option>' + CM.GEN_TIPOS.map(function (t) { return opt(t, t, x.tipo === t); }).join('') + '</select>') +
+      fl('Cantidad de plantas *', '<input class="in num" name="plantas" inputmode="numeric" placeholder="Ej.: 7" value="' + (x.plantas == null ? '' : x.plantas) + '">') + '</div>' +
+      fl('Estado', '<select class="in" name="estado">' + CM.GEN_ESTADOS.map(function (t) { return opt(t, t, x.estado === t); }).join('') + '</select>') +
+      fl('Observaciones', '<textarea class="in" name="obs" maxlength="300" style="min-height:60px">' + esc(x.obs || '') + '</textarea>') +
+      (x.id ? fl('Motivo del cambio *', '<input class="in" name="motivo" maxlength="120" placeholder="Ej.: recuento de plantas">') : '') + '<p class="err" role="alert" data-err></p></form>';
+  }
+  CM.acts['gen-nueva'] = function (t) {
+    var c = CM.cultivo(t.getAttribute('data-id')); if (!c || !CM.need('cultivo', 'oper')) return; if (c.estado !== 'activo') return CM.toast('El ciclo está cerrado.', true);
+    CM.modal.open({ title: 'Agregar genética · ' + c.nombre, body: genForm(c), footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fGE">Agregar</button>' });
+  };
+  CM.acts['gen-editar'] = function (t) {
+    var c = CM.cultivo(t.getAttribute('data-id')); if (!c || !CM.need('cultivo', 'oper')) return;
+    var x = (c.geneticas || []).filter(function (y) { return y.id === t.getAttribute('data-g'); })[0]; if (!x) return;
+    CM.modal.open({ title: 'Editar genética · ' + x.variedad, body: genForm(c, x), footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fGE">Guardar cambios</button>' });
+  };
+  CM.forms['gen-guardar'] = function (f) {
+    var e = f.elements, c = CM.cultivo(e.cu.value); if (!c || !CM.need('cultivo', 'oper')) return;
+    if (c.estado !== 'activo') return fail(f, 'vari', 'El ciclo está cerrado.');
+    var vari = e.vari.value.trim().replace(/\s+/g, ' '), pl = e.plantas.value.trim();
+    if (vari.length < 2) return fail(f, 'vari', 'Escribí la variedad.');
+    if (!/^\d{1,5}$/.test(pl)) return fail(f, 'plantas', 'Escribí la cantidad de plantas (número entero).');
+    var d = { variedad: vari, tipo: e.tipo.value, plantas: parseInt(pl, 10), estado: e.estado.value, obs: e.obs.value.trim().slice(0, 300) };
+    if (CM.GEN_ESTADOS.indexOf(d.estado) < 0) return fail(f, 'estado', 'Elegí el estado.');
+    c.geneticas = c.geneticas || [];
+    if (e.gid.value) {
+      var x = c.geneticas.filter(function (y) { return y.id === e.gid.value; })[0]; if (!x) return;
+      var mot = e.motivo.value.trim(); if (mot.length < 3) return fail(f, 'motivo', 'Escribí el motivo del cambio.');
+      if (Object.keys(d).every(function (k) { return d[k] === x[k]; })) return fail(f, 'vari', 'No cambió nada.');
+      var antes = {}; Object.keys(d).forEach(function (k) { antes[k] = x[k]; });
+      (x.hist = x.hist || []).push({ ts: new Date().toISOString(), user: CM.db.cfg.operador, motivo: mot, antes: antes });
+      Object.keys(d).forEach(function (k) { x[k] = d[k]; });
+      CM.audit('Cultivo: genética modificada', c.id + ' · ' + vari + ' · ' + d.plantas + ' plantas · ' + d.estado + ' · ' + mot);
+    } else {
+      if (c.geneticas.some(function (y) { return CM.norm(y.variedad) === CM.norm(vari) && ['Cosechada', 'Descartada'].indexOf(y.estado) < 0; })) return fail(f, 'vari', 'Esa variedad ya está cargada en este espacio: editala.');
+      var nx = { id: 'G' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: new Date().toISOString(), user: CM.db.cfg.operador, hist: [] };
+      Object.keys(d).forEach(function (k) { nx[k] = d[k]; });
+      c.geneticas.push(nx);
+      CM.audit('Cultivo: genética agregada', c.id + ' · ' + vari + ' · ' + d.plantas + ' plantas');
+    }
+    CM.save(); CM.modal.close(true); render(); CM.toast('Genética guardada.');
+  };
   VIEWS.cultivo = cultivoHtml;
   CM.cultivoHtml = cultivoHtml;
 
@@ -192,7 +258,7 @@
       body: '<form id="fCR" data-form="cr-guardar" class="f" autocomplete="off" novalidate><input type="hidden" name="cu" value="' + esc(c.id) + '"><input type="hidden" name="rid" value="' + esc(r ? r.id : '') + '">' +
         '<div class="f f2">' + fl('Fecha *', '<input class="in" type="date" id="crFecha" name="fecha" value="' + esc(v.fecha) + '" min="' + esc(c.inicio) + '" max="' + h + '">') +
         fl('Día y semana (se calculan solos)', '<input class="in" id="crDS" readonly tabindex="-1" value="Día ' + ds.dia + ' · Semana ' + ds.sem + '">') + '</div>' +
-        '<div class="f f2">' + fl('Fase *', '<select class="in" name="fase"><option value="">Elegí la fase…</option>' + CM.FASES.map(function (x) { return opt(x, x, v.fase === x); }).join('') + '</select>') +
+        '<div class="f f2">' + fl('Fase *', '<select class="in" name="fase"><option value="">Elegí la fase…</option>' + CM.FASES.map(function (x) { return opt(x, faseL(x), v.fase === x); }).join('') + '</select>') +
         fl('Encargado/a *', '<input class="in" name="enc" maxlength="60" list="crEnc" value="' + esc(v.enc) + '"><datalist id="crEnc">' + encargados().map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>') + '</div>' +
         '<fieldset><legend>Riego</legend><div class="f f2">' + inp('ph', v.ph, 'PH (0 a 14)', 'Ej.: 6,2') + inp('ec', v.ec, 'EC (mS/cm, 0 a 10)', 'Ej.: 1,4') + '</div></fieldset>' +
         '<div class="f f2">' + inp('h', v.h, 'H % (humedad, 0 a 100)', 'Ej.: 62') + inp('temp', v.temp, 'Temp °C (−10 a 60)', 'Ej.: 24') + '</div>' +

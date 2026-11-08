@@ -99,7 +99,7 @@
     if (doc === 'aporte') {
       var a = db.aportes.slice().sort(function (x, y) { return y.ts.localeCompare(x.ts); })[0];
       if (!a) return 'Sin donaciones para imprimir.';
-      L.push(ctr('COMPROBANTE DE DONACION VOLUNTARIA', c).slice(0, c), ctr('NO VALIDO COMO FACTURA', c), rule, 'N.: ' + a.id, 'Fecha: ' + CM.fmtFecha(a.fecha), 'Donante: ' + sinTilde(CM.quienDe(a).nom).slice(0, 24), 'Documento: ' + CM.quienDe(a).doc, 'Concepto: ' + sinTilde(a.concepto), 'Medio: ' + sinTilde(CM.MEDIOS[a.medio] || a.medio), rule, lr('DONACION', money(a.cent), c), rule);
+      L.push(ctr('COMPROBANTE DE DONACION VOLUNTARIA', c).slice(0, c), ctr('NO VALIDO COMO FACTURA', c), rule, 'N.: ' + a.id, 'Fecha: ' + CM.fmtFecha(a.fecha), 'Donante: ' + sinTilde(CM.quienDe(a).nom).slice(0, 24), 'Documento: ' + CM.quienDe(a).doc, 'Concepto: ' + sinTilde(a.concepto), 'Medio: ' + sinTilde(CM.medioTxt(a)).slice(0, 60), rule, lr('DONACION', money(a.cent), c), rule);
       L.push.apply(L, wrap('Donación voluntaria, no es pago de un servicio. Documento interno.', c));
     } else if (doc === 'disp') {
       var d = db.disp.filter(function (x) { return !x.anulada; }).sort(function (x, y) { return y.ts.localeCompare(x.ts); })[0];
@@ -144,7 +144,7 @@
     switch (k) {
       case 'pacientes': return [['Legajo', 'Documento', 'Nombre', 'Telefono', 'Email', 'Nacimiento', 'Domicilio', 'REPROCANN', 'Vence', 'Historia completa', 'Consentimiento'], Object.keys(db.pacientes).map(function (d) { var p = db.pacientes[d], r = CM.estadoRep(p.reprocann); return [p.leg || '', CM.fmtDoc(CM.docPac(p)), p.nombre, p.tel, p.email, p.nac, p.dir, CM.REP_LABEL[r.k], p.reprocann.vence || '', p.historiaCompleta ? 'Si' : 'No', p.consentimiento || '']; })];
       case 'disp': return [['Id', 'Fecha', 'Legajo', 'Lote', 'Preparado', 'Cantidad', 'Unidad', 'Anulada'], db.disp.map(function (d) { return [d.id, d.fecha, CM.legDe(d.dni), d.lote, d.nombre, d.cant, d.unidad, d.anulada ? 'Si' : 'No']; })];
-      case 'aportes': return [['Id', 'Fecha', 'Legajo', 'Documento', 'Donante', 'Concepto', 'Medio', 'Importe', 'Estado', 'Factura C'], db.aportes.map(function (a) { var c = a.comp ? CM.comp(a.comp) : null; var q = CM.quienDe(a); return [a.id, a.fecha, q.pac ? CM.legDe(a.dni) : '', q.doc, q.nom, a.concepto, CM.MEDIOS[a.medio] || a.medio, m2(a.cent), a.estado, c ? c.pv + '-' + c.nro : '']; })];
+      case 'aportes': return [['Id', 'Fecha', 'Legajo', 'Documento', 'Donante', 'Concepto', 'Medio', 'Importe', 'Estado', 'Factura C'], db.aportes.map(function (a) { var c = a.comp ? CM.comp(a.comp) : null; var q = CM.quienDe(a); return [a.id, a.fecha, q.pac ? CM.legDe(a.dni) : '', q.doc, q.nom, a.concepto, CM.medioTxt(a), m2(a.cent), a.estado, c ? c.pv + '-' + c.nro : '']; })];
       case 'comps': return [['Tipo', 'Numero', 'Fecha', 'Documento receptor', 'Importe', 'Anulado', 'Simulado'], db.comps.map(function (c) { return [c.tipo, c.pv + '-' + c.nro, c.fecha, CM.quienDe(c).doc, m2(c.cent), c.anulado ? 'Si' : 'No', 'Si (sin validez fiscal)']; })];
       case 'lotes': return [['Lote', 'Preparado', 'Tipo', 'Quimiotipo', 'Unidad', 'Stock', 'Minimo'], db.lotes.map(function (l) { return [l.id, l.nombre, CM.PRODUCTOS[l.prod].n, l.quim, l.unidad, CM.stockLote(l.id), l.min]; })];
       case 'movs': return [['Id', 'Fecha', 'Lote', 'Tipo', 'Cantidad', 'Referencia', 'Motivo'], db.movs.map(function (m) { return [m.id, m.fecha, m.lote, m.tipo, m.cant, m.ref, m.motivo]; })];

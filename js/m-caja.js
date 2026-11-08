@@ -33,7 +33,7 @@
     var db = CM.db, r = rangoDash(), f = CM.dash;
     var aps = db.aportes.filter(function (a) {
       if (a.fecha < r[0] || a.fecha > r[1]) return false;
-      if (f.medio && a.medio !== f.medio) return false;
+      if (f.medio && !CM.partesAporte(a).some(function (x) { return x.m === f.medio; })) return false;
       var c = a.comp ? CM.comp(a.comp) : null, fc = !!(c && !c.anulado);
       if (f.fc === 'con' && !fc) return false;
       if (f.fc === 'sin' && fc) return false;
@@ -83,7 +83,7 @@
     var max = 1; S.items.forEach(function (x) { if (x.c > max) max = x.c; });
     var bars = S.items.map(function (x) { return '<div class="b" style="height:' + Math.max(3, Math.round(x.c / max * 100)) + '%" title="' + esc(x.t + ': ' + money(x.c)) + '"></div>'; }).join('');
     var axis = S.items.map(function (x, i) { return '<span>' + (S.items.length > 20 && i % 2 ? '' : esc(x.l)) + '</span>'; }).join('');
-    var porMedio = {}; D.aps.forEach(function (a) { porMedio[a.medio] = (porMedio[a.medio] || 0) + a.cent; });
+    var porMedio = {}; D.aps.forEach(function (a) { CM.partesAporte(a).forEach(function (x) { porMedio[x.m] = (porMedio[x.m] || 0) + x.a; }); });
     var porConc = {}; D.aps.forEach(function (a) { porConc[a.concepto] = (porConc[a.concepto] || 0) + a.cent; });
     var porProd = {}; D.disp.forEach(function (d) { porProd[CM.PRODUCTOS[d.prod].n] = (porProd[CM.PRODUCTOS[d.prod].n] || 0) + 1; });
     var porLote = {}; D.disp.forEach(function (d) { var k = d.nombre + ' (' + U.uTxt(d.unidad, 2) + ')'; porLote[k] = (porLote[k] || 0) + d.cant; });
@@ -135,7 +135,7 @@
   CM.acts['dash-reset'] = function () { CM.dash = { per: '30', desde: '', hasta: '', medio: '', fc: '' }; render(); };
   CM.acts['dash-csv'] = function () {
     var D = datosDash();
-    CM.descargar('dashboard_' + CM.hoy() + '.csv', CM.csv(['Fecha', 'Legajo', 'Documento', 'Concepto', 'Medio', 'Importe', 'Factura C'], D.aps.map(function (a) { var c = a.comp ? CM.comp(a.comp) : null; return [a.fecha, CM.quienDe(a).pac ? CM.legDe(a.dni) : '', CM.quienDe(a).doc, a.concepto, medioL(a.medio), (a.cent / 100).toFixed(2).replace('.', ','), c && !c.anulado ? c.pv + '-' + c.nro : 'Sin']; })));
+    CM.descargar('dashboard_' + CM.hoy() + '.csv', CM.csv(['Fecha', 'Legajo', 'Documento', 'Concepto', 'Medio', 'Importe', 'Factura C'], D.aps.map(function (a) { var c = a.comp ? CM.comp(a.comp) : null; return [a.fecha, CM.quienDe(a).pac ? CM.legDe(a.dni) : '', CM.quienDe(a).doc, a.concepto, CM.medioTxt(a), (a.cent / 100).toFixed(2).replace('.', ','), c && !c.anulado ? c.pv + '-' + c.nro : 'Sin']; })));
   };
 
   /* ===================================================================

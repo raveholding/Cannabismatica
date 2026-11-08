@@ -127,6 +127,32 @@
     return r.length === 1 ? r[0] : null;
   };
 
+  /* ---------- buscador de pacientes reutilizable (membresías, sellos, cupones…) ----------
+     CM.pacInput(name, placeholder) devuelve el campo + la caja de resultados. Al escribir se listan los pacientes
+     que coinciden (tocar = elegir) y el elegido queda marcado. El valor guardado es el legajo (o la clave interna). */
+  CM.pacInput = function (name, ph) {
+    var id = 'pp' + Math.random().toString(36).slice(2, 8);
+    return '<input class="in" id="' + id + '" name="' + esc(name || 'dni') + '" data-pacpick autocomplete="off" placeholder="' + esc(ph || 'Escribí nombre, legajo o documento') + '" aria-describedby="' + id + 'b"><div id="' + id + 'b" class="pacpick-box" aria-live="polite"></div>';
+  };
+  function pacPickRender(inp) {
+    var box = document.getElementById(inp.id + 'b'); if (!box) return;
+    var q = inp.value.trim(), p = CM.resolverPac(q);
+    if (!q) { box.innerHTML = ''; return; }
+    if (p) { box.innerHTML = '<span class="pac-ok">' + CM.icon('check') + '<b>' + esc(p.nombre) + '</b> · ' + esc(CM.idTxt(p)) + '</span>'; return; }
+    var m = CM.buscarPacs(q).sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre), 'es'); });
+    if (!m.length) { box.innerHTML = '<span class="hint">No hay pacientes con ese dato. Probá con otra parte del nombre, el legajo o el documento.</span>'; return; }
+    box.innerHTML = '<span class="hint">' + m.length + ' coincidencia' + (m.length > 1 ? 's' : '') + ': tocá el paciente.</span><div class="pick-pac">' + m.slice(0, 10).map(function (x) {
+      return '<button type="button" class="btn sm" data-act="pacpick-sel" data-for="' + esc(inp.id) + '" data-v="' + esc(x.leg || x.dni) + '"><b>' + esc(x.nombre) + '</b>&nbsp;· ' + esc(CM.idTxt(x)) + '</button>';
+    }).join('') + (m.length > 10 ? '<span class="hint">… y ' + (m.length - 10) + ' más: escribí más letras.</span>' : '') + '</div>';
+  }
+  CM.pacPickRender = pacPickRender;
+  document.addEventListener('input', function (ev) { var t = ev.target; if (t && t.hasAttribute && t.hasAttribute('data-pacpick')) pacPickRender(t); });
+  CM.acts = CM.acts || {};
+  CM.acts['pacpick-sel'] = function (t) {
+    var inp = document.getElementById(t.getAttribute('data-for')); if (!inp) return;
+    inp.value = t.getAttribute('data-v'); pacPickRender(inp);
+  };
+
   /* ---------- alta de paciente: siempre registro nuevo y único ---------- */
   /* o: { nombre, tel, doc:{tipo,num}|null, origen, ...otros campos de la ficha }.
      La clave interna es el DNI sólo si es nuevo; si no (sin documento, CUIT/CUIL o DNI repetido) se genera una clave única.

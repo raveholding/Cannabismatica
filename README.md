@@ -5,6 +5,19 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-08) · Ajustes pedidos por la fundación
+
+- **Membresías**: el campo Paciente lista a los pacientes cargados mientras se escribe (tocar = elegir). **Planes** editables («Plan de Salud», «Consulta Médica» u otros): sólo el administrador, o quien tenga nivel *admin* en Fidelización, puede crearlos, modificarlos o archivarlos (también lo exige el servidor). Al confirmar el pago se carga el importe recibido.
+- **Cultivo**: el nombre del espacio (Sala 1, Sala 2, Carpa…) en negrita y el código más chico; **genéticas por espacio** (variedad, tipo, cantidad de plantas, estado y observaciones, con historial de cambios); fases nuevas después de Floración: **Stretching, Engorde, Maduración y Lavado de raíces (washing)**.
+- **Dispensación**: el **origen de cultivo sale del lote** (el lote guarda su ciclo; ya no se elige a mano). Botón «Ciclo de un lote» en Trazabilidad / Stock para asignarlo a los lotes existentes.
+- **Donación mixta** (varios medios que suman el total) y medios **tarjeta de débito / crédito**. La caja recibe una línea por medio: sólo el efectivo entra al arqueo.
+- **Trazabilidad / Stock**: nuevo nombre, el stock por lote va primero y muestra el ciclo de origen.
+- **Inicio** sin datos ni números de ejemplo; las donaciones del mes separan lo cargado en el sistema de lo importado del sistema anterior.
+- **Tareas**: el responsable se elige entre todo el equipo (personal + usuarios del sistema).
+- **Domicilio de cultivo** del paciente (Autocultivo / Cultiva la ONG / A completar) en REPROCANN y en la ficha.
+- Con la nube activa ya no se ofrece la **Factura C simulada** (sólo existe en la demo).
+- Servidor: `supabase/03-planes-y-equipo.sql` (aplicado). Prueba: `t/e2e_ajustes_1108.py` (56 verificaciones, modo local con datos ficticios).
+
 ## Novedades (2026-10-23) · Menú público con los bloques unificados de Sistema VB
 
 - **Tarjeta del Club de ejemplo** («Así se ve tu tarjeta»), con la meta de sellos y el beneficio que se configuran en *Menú público → Club y altas*. Dice «ejemplo»: no es la tarjeta de nadie.

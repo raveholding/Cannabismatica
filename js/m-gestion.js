@@ -10,7 +10,26 @@
   }
   function sel(arr, id) { for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i]; return null; }
   function addMonths(iso, n) { var d = new Date(iso + 'T12:00:00Z'); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 10); }
-  function empNom(id) { var e = sel(CM.db.staff, id); return e ? e.nombre.replace(/\s*\((ficticio|ficticia)\)/i, '') : '—'; }
+  function empNom(id) {
+    if (/^U:/.test(id || '')) { var u = equipoNube().filter(function (x) { return 'U:' + x.id === id; })[0]; return u ? u.nombre : 'Persona del equipo'; }
+    var e = sel(CM.db.staff, id); return e ? e.nombre.replace(/\s*\((ficticio|ficticia)\)/i, '') : '—';
+  }
+  /* Responsables posibles: el personal cargado + las personas con usuario en el sistema (nube), sin repetir nombres. */
+  var EQ = { l: [], t: 0, carg: false };
+  function equipoNube() {
+    var N = CM.nube;
+    if (N && N.activa && N._rpc && !EQ.carg && Date.now() - EQ.t > 300000) {
+      EQ.carg = true;
+      N._rpc('equipo_nombres', {}).then(function (l) { EQ.l = Array.isArray(l) ? l : []; EQ.t = Date.now(); EQ.carg = false; if (/^#\/tareas/.test(window.location.hash) && !CM.modal.isOpen()) render(); }, function () { EQ.t = Date.now(); EQ.carg = false; });
+    }
+    return EQ.l.length ? EQ.l : (CM.db.users || []).filter(function (u) { return u.activo !== false && u.nombre; }).map(function (u) { return { id: u.id, nombre: u.nombre }; });
+  }
+  function responsables(soloActivos) {
+    var out = [], vistos = {};
+    CM.db.staff.filter(function (e) { return !soloActivos || e.activo; }).forEach(function (e) { var n = empNom(e.id); vistos[CM.norm(n)] = 1; out.push({ id: e.id, nombre: n }); });
+    equipoNube().forEach(function (u) { if (!vistos[CM.norm(u.nombre)]) { vistos[CM.norm(u.nombre)] = 1; out.push({ id: 'U:' + u.id, nombre: u.nombre }); } });
+    return out.sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+  }
 
   /* ===================================================================
      INVENTARIO
@@ -199,7 +218,7 @@
       var pacs = Object.keys(db.pacientes).map(function (k) { return db.pacientes[k]; }).map(function (p) { return { p: p, s: CM.saldoSellos(p.dni) }; }).sort(function (a, b) { return b.s - a.s; });
       var led = db.sellos.slice().sort(function (a, b) { return b.ts.localeCompare(a.ts); }).slice(0, 12);
       return head + tb + '<div class="grid g2"><section class="card"><h2>Programa de sellos</h2><p style="color:var(--mu)">Un sello por día y por paciente, validado en el mostrador. Con <b>' + meta + '</b> sellos se canjea un beneficio. El alta desde el menú público <b>no</b> da sellos.</p>' +
-        '<form data-form="sello" class="f" autocomplete="off" novalidate><div class="f f2">' + fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" name="dni" autocomplete="off" placeholder="Ej.: 99000001 o el legajo">') + fl('Motivo', '<select class="in" name="motivo">' + ['Participación en taller', 'Seguimiento médico realizado', 'Voluntariado', 'Asistencia a curso'].map(function (m) { return opt(m, m); }).join('') + '</select>') + '</div><p class="err" role="alert" data-err></p><div class="row"><button class="btn pri" type="submit">' + CM.icon('star') + 'Otorgar sello de hoy</button></div></form></section>' +
+        '<form data-form="sello" class="f" autocomplete="off" novalidate><div class="f f2">' + fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', CM.pacInput('dni')) + fl('Motivo', '<select class="in" name="motivo">' + ['Participación en taller', 'Seguimiento médico realizado', 'Voluntariado', 'Asistencia a curso'].map(function (m) { return opt(m, m); }).join('') + '</select>') + '</div><p class="err" role="alert" data-err></p><div class="row"><button class="btn pri" type="submit">' + CM.icon('star') + 'Otorgar sello de hoy</button></div></form></section>' +
         '<section class="card"><h2>Últimos movimientos</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Paciente</th><th>Movimiento</th></tr></thead><tbody>' + led.map(function (s) { return '<tr><td>' + esc(CM.fmtFecha(s.fecha)) + '</td><td>' + esc(U.nombreCorto(U.nombreDe(s.dni))) + '</td><td>' + (s.tipo === 'sello' ? '+1 sello' : 'Canje (' + s.cant + ') · ' + esc(s.motivo)) + '</td></tr>'; }).join('') + '</tbody></table></div></section></div>' +
         '<section class="card" style="margin-top:14px"><h2>Saldo de cada paciente</h2><div class="tw"><table><thead><tr><th>Paciente</th><th>Progreso</th><th class="n">Sellos</th><th>Acciones</th></tr></thead><tbody>' + pacs.map(function (x) {
           return '<tr><td>' + esc(U.nombreCorto(x.p.nombre)) + '<br><small class="hint">' + esc(CM.idTxt(x.p)) + '</small></td><td style="min-width:140px"><div class="prog" role="img" aria-label="' + x.s + ' de ' + meta + ' sellos"><i style="width:' + Math.min(100, Math.round(x.s / meta * 100)) + '%"></i></div></td><td class="n">' + x.s + ' / ' + meta + '</td><td class="acts"><button class="btn sm" data-act="sello-hoy" data-dni="' + esc(x.p.dni) + '">+ Sello</button><button class="btn sm" data-act="sello-canje" data-dni="' + esc(x.p.dni) + '"' + (x.s < meta ? ' disabled' : '') + '>Canjear</button><button class="btn sm" data-act="sello-tarjeta" data-dni="' + esc(x.p.dni) + '">' + CM.icon('qr') + 'Tarjeta</button></td></tr>';
@@ -207,7 +226,7 @@
     }
     if (f.tab === 'cupones') {
       return head + tb + '<div class="grid g2"><section class="card"><h2>Canjear un cupón</h2><form data-form="cupon-canje" class="f" autocomplete="off" novalidate>' +
-        '<div class="f f2">' + fl('Código del cupón *', '<input class="in" name="cod" placeholder="Ej.: BIENVENIDA" style="text-transform:uppercase">') + fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" name="dni" autocomplete="off" placeholder="Ej.: 99000001 o el legajo">') + '</div>' +
+        '<div class="f f2">' + fl('Código del cupón *', '<input class="in" name="cod" placeholder="Ej.: BIENVENIDA" style="text-transform:uppercase">') + fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', CM.pacInput('dni')) + '</div>' +
         '<div class="f f2">' + fl('Donación sugerida del taller o curso (opcional, para calcular)', '<input class="in num" name="base" inputmode="decimal" placeholder="0">') + fl('Referencia (taller / curso) — evita canjes repetidos', '<input class="in" name="ref" placeholder="Ej.: Taller de cultivo 12/11">') + '</div>' +
         '<p class="err" role="alert" data-err></p><div class="note info" data-res hidden></div><div class="row"><button class="btn" type="button" data-act="cupon-validar">Validar</button><button class="btn pri" type="submit">Canjear cupón</button></div></form></section>' +
         '<section class="card"><h2>Cupones</h2><div class="row" style="margin-bottom:10px"><button class="btn sm" data-act="cupon-nuevo">' + CM.icon('plus') + 'Nuevo cupón</button></div><div class="tw"><table><thead><tr><th>Código</th><th>Bonificación</th><th>Vigencia</th><th class="n">Usos</th><th>Estado</th><th></th></tr></thead><tbody>' + db.cupones.map(function (c) {
@@ -223,7 +242,7 @@
         return '<tr><td>' + esc(U.nombreCorto(U.nombreDe(m.dni))) + '<br><small class="hint">' + esc(CM.idTxt(CM.paciente(m.dni))) + ' · aceptó términos ' + esc(m.cons.version) + ' el ' + esc(CM.fmtFecha(m.cons.fecha)) + '</small></td><td>' + esc(pl ? pl.n : '—') + '</td><td>' + esc(pl ? money(pl.cent) : '—') + '</td><td>' + (m.pagadoHasta ? esc(CM.fmtFecha(m.pagadoHasta)) : '—') + '</td><td>' + membPill(m) + '</td><td class="acts">' +
           (m.estado === 'cancelada' ? '' : '<button class="btn sm" data-act="memb-pago" data-id="' + esc(m.id) + '">Confirmar pago</button><button class="btn sm" data-act="memb-pausa" data-id="' + esc(m.id) + '">' + (m.estado === 'pausada' ? 'Reanudar' : 'Pausar') + '</button><button class="btn sm bad" data-act="memb-cancel" data-id="' + esc(m.id) + '">Cancelar</button>') + '</td></tr>';
       }).join('') + '</tbody></table></div><div class="note info" style="margin-top:12px">La membresía no figura <b>activa</b> hasta que se confirma el pago de la cuota. Esta es la cuota que los socios aportan a la fundación; no tiene relación con ningún cobro de VINCULAR BUSINESS por el sistema.</div></section>' +
-      '<section class="card" style="margin-top:14px"><h2>Planes</h2><ul class="tl">' + db.planes.map(function (p) { return '<li class="rubrow"><span><b>' + esc(p.n) + '</b> · ' + esc(money(p.cent)) + ' (' + esc(p.per) + ')<br><small class="hint">' + esc(p.ben) + '</small></span></li>'; }).join('') + '</ul></section>';
+      planesHtml(db);
   };
   CM.acts['fid-tab'] = function (t) { CM.fid.tab = t.getAttribute('data-v'); render(); };
   CM.forms.sello = function (f) {
@@ -309,17 +328,72 @@
     CM.db.cupones.push({ id: CM.nextId('CP'), cod: cod, tipo: e.tipo.value, valor: val, desde: e.desde.value, hasta: e.hasta.value, max: max, porPac: pp, estado: 'activo', desc: e.desc.value.trim() });
     CM.audit('Cupón creado', cod); CM.save(); CM.modal.close(true); render(); CM.toast('Cupón creado.');
   };
+  /* planes de membresía: los crea y modifica sólo el administrador o quien tenga permiso «admin» en Fidelización */
+  var PLAN_SUG = ['Plan de Salud', 'Consulta Médica'];
+  function planAdmin() { return CM.can('fidelizacion', 'admin'); }
+  function planesActivos() { return CM.db.planes.filter(function (p) { return p.activo !== false; }); }
+  function perL(p) { return { mensual: 'mensual', anual: 'anual' }[p] || p; }
+  function planesHtml(db) {
+    var adm = planAdmin(), ps = db.planes.slice().sort(function (a, b) { return (a.activo === false) - (b.activo === false) || String(a.n).localeCompare(String(b.n), 'es'); });
+    return '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Planes</h2>' + (adm ? '<button class="btn sm" data-act="plan-nuevo">' + CM.icon('plus') + 'Nuevo plan</button>' : '') + '</div>' +
+      (ps.length ? '<ul class="tl">' + ps.map(function (p) {
+        return '<li class="rubrow"><span><b>' + esc(p.n) + '</b> · ' + (p.cent ? esc(money(p.cent)) : 'sin cuota fija') + ' (' + esc(perL(p.per)) + ')' + (p.activo === false ? ' <span class="pill p-mu">Archivado</span>' : '') + (p.ben ? '<br><small class="hint">' + esc(p.ben) + '</small>' : '') + '</span>' +
+          (adm ? '<span class="acts"><button class="btn sm" data-act="plan-editar" data-id="' + esc(p.id) + '">Editar</button><button class="btn sm" data-act="plan-archivar" data-id="' + esc(p.id) + '">' + (p.activo === false ? 'Reactivar' : 'Archivar') + '</button></span>' : '') + '</li>';
+      }).join('') + '</ul>' : '<p class="hint">Todavía no hay planes. ' + (adm ? 'Creá el primero con «Nuevo plan» (por ejemplo, ' + PLAN_SUG.join(' o ') + ').' : 'Un administrador tiene que crearlos.') + '</p>') +
+      '<p class="hint">Sólo el administrador, o quien tenga permiso de administración en Fidelización, puede crear o modificar planes. Un plan con membresías no se borra: se archiva.</p></section>';
+  }
+  function planForm(p) {
+    p = p || { n: '', per: 'mensual', cent: 0, ben: '' };
+    return '<form id="fPL" data-form="plan-guardar" class="f" autocomplete="off" novalidate><input type="hidden" name="id" value="' + esc(p.id || '') + '">' +
+      fl('Nombre del plan *', '<input class="in" name="n" maxlength="60" list="plSug" value="' + esc(p.n) + '" placeholder="Ej.: Plan de Salud"><datalist id="plSug">' + PLAN_SUG.map(function (x) { return '<option value="' + esc(x) + '">'; }).join('') + '</datalist>') +
+      '<div class="f f2">' + fl('Periodicidad', '<select class="in" name="per">' + opt('mensual', 'Mensual', p.per === 'mensual') + opt('anual', 'Anual', p.per === 'anual') + '</select>') +
+      fl('Cuota sugerida (vacío o 0 = sin cuota fija)', '<input class="in num" name="cent" inputmode="decimal" placeholder="Ej.: 8000" value="' + (p.cent ? esc(CM.fmtMoney(p.cent).replace(/[^\d,]/g, '')) : '') + '">') + '</div>' +
+      fl('Qué incluye', '<input class="in" name="ben" maxlength="160" value="' + esc(p.ben || '') + '" placeholder="Ej.: consulta médica mensual y seguimiento">') + '<p class="err" role="alert" data-err></p></form>';
+  }
+  CM.acts['plan-nuevo'] = function () {
+    if (!CM.need('fidelizacion', 'admin')) return;
+    CM.modal.open({ title: 'Nuevo plan', body: planForm(), footer: '<button class="btn" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fPL">Guardar plan</button>' });
+  };
+  CM.acts['plan-editar'] = function (t) {
+    if (!CM.need('fidelizacion', 'admin')) return;
+    var p = CM.plan(t.getAttribute('data-id')); if (!p) return;
+    CM.modal.open({ title: 'Modificar plan', body: planForm(p) + (CM.db.membresias.some(function (m) { return m.plan === p.id; }) ? '<div class="note info">El cambio de cuota rige para los próximos pagos. Las cuotas ya registradas no cambian.</div>' : ''), footer: '<button class="btn" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fPL">Guardar cambios</button>' });
+  };
+  CM.forms['plan-guardar'] = function (f) {
+    if (!CM.need('fidelizacion', 'admin')) return;
+    var e = f.elements, n = e.n.value.trim().replace(/\s+/g, ' '), cent = e.cent.value.trim() ? CM.parseMonto(e.cent.value) : 0;
+    if (n.length < 3) return fail(f, 'n', 'Escribí el nombre del plan (al menos 3 letras).');
+    if (CM.db.planes.some(function (x) { return x.id !== e.id.value && CM.norm(x.n) === CM.norm(n); })) return fail(f, 'n', 'Ya hay un plan con ese nombre.');
+    if (isNaN(cent) || cent < 0) return fail(f, 'cent', 'La cuota tiene que ser un número (o quedar vacía).');
+    var p = e.id.value ? CM.plan(e.id.value) : null, antes = p ? JSON.stringify({ n: p.n, per: p.per, cent: p.cent, ben: p.ben }) : '';
+    if (!p) { p = { id: CM.nextId('PL'), activo: true }; CM.db.planes.push(p); }
+    p.n = n; p.per = e.per.value; p.cent = cent; p.ben = e.ben.value.trim();
+    CM.audit(antes ? 'Plan modificado' : 'Plan creado', p.id + ' · ' + n + ' · ' + (cent ? money(cent) : 'sin cuota fija') + ' (' + perL(p.per) + ')' + (antes ? ' · antes: ' + antes : ''));
+    CM.save(); CM.modal.close(true); render(); CM.toast(antes ? 'Plan modificado.' : 'Plan creado.');
+  };
+  CM.acts['plan-archivar'] = function (t) {
+    if (!CM.need('fidelizacion', 'admin')) return;
+    var p = CM.plan(t.getAttribute('data-id')); if (!p) return;
+    p.activo = p.activo === false;
+    CM.audit(p.activo ? 'Plan reactivado' : 'Plan archivado', p.id + ' · ' + p.n); CM.save(); render();
+  };
+
   /* membresías */
   CM.acts['memb-nueva'] = function () {
     if (!CM.need('fidelizacion', 'oper')) return;
-    CM.modal.open({ title: 'Nueva membresía de socio/a', body: '<form id="fMB" data-form="memb-nueva" class="f" autocomplete="off" novalidate>' + fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', '<input class="in" name="dni" autocomplete="off" placeholder="Ej.: 99000001 o el legajo">') +
-      fl('Plan *', '<select class="in" name="plan">' + CM.db.planes.map(function (p) { return opt(p.id, p.n + ' · ' + money(p.cent) + ' (' + p.per + ')'); }).join('') + '</select>') +
+    if (!planesActivos().length) {
+      CM.modal.open({ title: 'Nueva membresía de socio/a', body: '<p>Todavía no hay planes activos. ' + (planAdmin() ? 'Creá primero el plan (por ejemplo, ' + PLAN_SUG.join(' o ') + ').' : 'Pedile a un administrador que cree los planes.') + '</p>', footer: '<button class="btn" data-act="modal-close">Cerrar</button>' + (planAdmin() ? '<button class="btn pri" data-act="plan-nuevo">Crear plan</button>' : '') });
+      return;
+    }
+    CM.modal.open({ title: 'Nueva membresía de socio/a', body: '<form id="fMB" data-form="memb-nueva" class="f" autocomplete="off" novalidate>' + fl('Paciente * (nombre, legajo, DNI, CUIT o CUIL)', CM.pacInput('dni')) +
+      fl('Plan *', '<select class="in" name="plan">' + planesActivos().map(function (p) { return opt(p.id, p.n + ' · ' + (p.cent ? money(p.cent) : 'sin cuota fija') + ' (' + perL(p.per) + ')'); }).join('') + '</select>') +
       '<div class="note info">Términos v1.0 [VERIFICAR con asesor/a legal]: la cuota es una donación voluntaria y periódico que sostiene a la fundación. Se puede pausar o cancelar en cualquier momento, sin obstáculos. La membresía se activa cuando se confirma el pago.</div>' +
       '<label class="chk"><input type="checkbox" name="ok"><span>La persona leyó y acepta los términos de la membresía (v1.0) *</span></label><p class="err" role="alert" data-err></p></form>', footer: '<button class="btn" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fMB">Crear membresía</button>' });
   };
   CM.forms['memb-nueva'] = function (f) {
     var e = f.elements, dni = (CM.resolverPac(e.dni.value) || { dni: '' }).dni;
     if (!CM.paciente(dni)) return fail(f, 'dni', 'No encontré a ese paciente: escribí su nombre, legajo o documento. Si todavía no está registrado, creá primero su ficha.');
+    var plSel = CM.plan(e.plan.value); if (!plSel || plSel.activo === false) return fail(f, 'plan', 'Elegí un plan activo.');
     if (!e.ok.checked) return fail(f, 'ok', 'Falta el consentimiento: es obligatorio y queda registrado con su versión.');
     if (CM.db.membresias.some(function (m) { return m.dni === dni && ['cancelada'].indexOf(m.estado) < 0; })) return fail(f, 'dni', 'Ese paciente ya tiene una membresía vigente.');
     CM.db.membresias.push({ id: CM.nextId('MB'), dni: dni, plan: e.plan.value, desde: CM.hoy(), pagadoHasta: '', cons: { version: 'v1.0', fecha: CM.hoy() }, estado: 'ok' });
@@ -329,15 +403,17 @@
     if (!CM.need('fidelizacion', 'oper')) return;
     var m = sel(CM.db.membresias, t.getAttribute('data-id')), pl = CM.plan(m.plan);
     CM.modal.open({ title: 'Confirmar pago de la cuota', body: '<form id="fMP" data-form="memb-pago" class="f"><input type="hidden" name="id" value="' + esc(m.id) + '"><p>' + esc(U.nombreCorto(U.nombreDe(m.dni))) + ' · ' + esc(pl.n) + ' · <b>' + esc(money(pl.cent)) + '</b></p>' +
-      (pl.cent > 0 ? fl('Medio de la donación', '<select class="in" name="medio">' + Object.keys(CM.MEDIOS).map(function (k) { return opt(k, CM.MEDIOS[k]); }).join('') + '</select>') + '<label class="chk"><input type="checkbox" name="fc"><span>Emitir Factura C simulada</span></label><div class="note info">Se registra una donación voluntaria (entra a la caja abierta y al dashboard). Sólo confirmá si ya recibiste el aporte.</div>' : '<div class="note info">Cuota bonificada: no genera aporte.</div>') +
+      '<div class="f f2">' + fl('Importe recibido (vacío o 0 = cuota bonificada)', '<input class="in num" name="cent" inputmode="decimal" placeholder="0" value="' + (pl.cent ? esc(CM.fmtMoney(pl.cent).replace(/[^\d,]/g, '')) : '') + '">') +
+      fl('Medio de la donación', '<select class="in" name="medio">' + Object.keys(CM.MEDIOS).map(function (k) { return opt(k, CM.MEDIOS[k]); }).join('') + '</select>') + '</div>' +
+      '<div class="note info">Si hay importe, se registra como donación voluntaria (entra a la caja abierta y al dashboard). Sólo confirmá si ya recibiste el aporte.</div><p class="err" role="alert" data-err></p>' +
       '</form>', footer: '<button class="btn" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fMP">Confirmar pago recibido</button>' });
   };
   CM.forms['memb-pago'] = function (f) {
-    var e = f.elements, m = sel(CM.db.membresias, e.id.value), pl = CM.plan(m.plan);
-    if (pl.cent > 0) {
-      var a = { id: CM.nextId('A'), fecha: CM.hoy(), ts: new Date().toISOString(), dni: m.dni, disp: '', cent: pl.cent, medio: e.medio.value, concepto: 'Contribución', obs: 'Cuota de socio/a · ' + pl.n, user: CM.db.cfg.operador, estado: 'registrado', comp: '' };
+    var e = f.elements, m = sel(CM.db.membresias, e.id.value), pl = CM.plan(m.plan), cent = e.cent.value.trim() ? CM.parseMonto(e.cent.value) : 0;
+    if (isNaN(cent) || cent < 0) return fail(f, 'cent', 'El importe tiene que ser un número (o quedar vacío si la cuota está bonificada).');
+    if (cent > 0) {
+      var a = { id: CM.nextId('A'), fecha: CM.hoy(), ts: new Date().toISOString(), dni: m.dni, disp: '', cent: cent, medio: e.medio.value, concepto: 'Contribución', obs: 'Cuota de socio/a · ' + pl.n, user: CM.db.cfg.operador, estado: 'registrado', comp: '' };
       CM.db.aportes.push(a); CM.audit('Donación voluntaria', a.id + ' · cuota de socio · ' + money(a.cent));
-      if (e.fc && e.fc.checked) { var c = CM.emitirFacturaC(a); CM.audit('Factura C simulada', c.pv + '-' + c.nro + ' · ' + a.id); }
     }
     var base = m.pagadoHasta && m.pagadoHasta >= CM.hoy() ? m.pagadoHasta : CM.hoy();
     m.pagadoHasta = addMonths(base, pl.per === 'anual' ? 12 : 1);
@@ -465,7 +541,7 @@
     }
     var tareas = db.tareas.filter(function (t) { return !f.resp || t.resp === f.resp; });
     var h = CM.hoy();
-    return head + tb + '<div class="row" style="margin-bottom:12px"><label class="sr" for="tarResp">Filtrar por responsable</label><select id="tarResp" class="in fx">' + opt('', 'Todo el equipo', !f.resp) + db.staff.map(function (e) { return opt(e.id, e.nombre, f.resp === e.id); }).join('') + '</select><button class="btn pri sm" data-act="tar-nueva">' + CM.icon('plus') + 'Nueva tarea</button></div>' +
+    return head + tb + '<div class="row" style="margin-bottom:12px"><label class="sr" for="tarResp">Filtrar por responsable</label><select id="tarResp" class="in fx">' + opt('', 'Todo el equipo', !f.resp) + responsables(false).map(function (e) { return opt(e.id, e.nombre, f.resp === e.id); }).join('') + '</select><button class="btn pri sm" data-act="tar-nueva">' + CM.icon('plus') + 'Nueva tarea</button></div>' +
       '<div class="kanban">' + COLS.map(function (c, ci) {
         var arr = tareas.filter(function (t) { return t.col === c[0]; });
         return '<section class="kcol" data-col="' + c[0] + '" aria-label="' + c[1] + '"><h3>' + c[1] + ' <span class="pill p-mu">' + arr.length + '</span></h3>' + arr.map(function (t) {
@@ -495,7 +571,7 @@
   function modalTarea(t) {
     var edit = !!t;
     CM.modal.open({ title: edit ? 'Editar tarea' : 'Nueva tarea', body: '<form id="fTA" data-form="tarea" class="f" autocomplete="off" novalidate><input type="hidden" name="id" value="' + esc(edit ? t.id : '') + '">' + fl('Título *', '<input class="in" name="t" value="' + esc(edit ? t.t : '') + '">') + fl('Descripción', '<textarea class="in" name="d">' + esc(edit ? t.d : '') + '</textarea>') +
-      '<div class="f f2">' + fl('Responsable', '<select class="in" name="resp">' + CM.db.staff.filter(function (e) { return e.activo; }).map(function (e) { return opt(e.id, e.nombre, edit && t.resp === e.id); }).join('') + '</select>') + fl('Prioridad', '<select class="in" name="pri">' + Object.keys(PRI).map(function (k) { return opt(k, PRI[k][0], edit && t.pri === k); }).join('') + '</select>') + '</div>' +
+      '<div class="f f2">' + fl('Responsable', '<select class="in" name="resp">' + opt('', 'Sin asignar', !edit || !t.resp) + responsables(true).map(function (e) { return opt(e.id, e.nombre, edit && t.resp === e.id); }).join('') + '</select>') + fl('Prioridad', '<select class="in" name="pri">' + Object.keys(PRI).map(function (k) { return opt(k, PRI[k][0], edit && t.pri === k); }).join('') + '</select>') + '</div>' +
       '<div class="f f2">' + fl('Vencimiento', '<input class="in" type="date" name="vence" value="' + esc(edit ? t.vence : '') + '">') + fl('Columna', '<select class="in" name="col">' + COLS.map(function (c) { return opt(c[0], c[1], edit ? t.col === c[0] : c[0] === 'pend'); }).join('') + '</select>') + '</div><p class="err" role="alert" data-err></p></form>',
       footer: (edit ? '<button class="btn bad" type="button" data-act="tar-del" data-id="' + esc(t.id) + '">Eliminar</button>' : '') + '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fTA">Guardar</button>' });
   }

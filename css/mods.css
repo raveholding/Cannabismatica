@@ -250,3 +250,8 @@ textarea.in.tall{min-height:160px}
 .dev-card .dev-firma{padding:4px 2px}
 .dev-card .dev-firma a{color:#B57F0E !important}
 @media (max-width:899px){.nav .dev-firma{display:none}}
+/* 2026-11-08: ciclos de cultivo — nombre del espacio (Sala/Carpa) en negrita y el código chico */
+.cu-nom{font-size:16px;font-weight:700}
+.cu-cod{font-size:11px;letter-spacing:.02em}
+.cu-gen h3{font-size:15px}
+.pacpick-box:empty{display:none}
