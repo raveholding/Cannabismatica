@@ -5,6 +5,11 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-10) · Empezar de cero conservando pacientes
+- **Configuración → Empezar de cero** ofrece dos modos. Por defecto **«Conservar los pacientes, sus legajos y documentos»**: quedan las fichas (datos, historia clínica, REPROCANN, consentimiento, N.º de socio), los documentos del legajo (`legDocs`: consentimiento informado, REPROCANN, escaneos y accesos a Drive del sistema anterior), los seguimientos y las historias clínicas del menú todavía sin revisar. Se retira lo demás: lotes, stock, dispensaciones, donaciones, comprobantes, cajas, sellos, cupones, membresías, inventario, cultivo, tareas, personal, turnos y altas al club pendientes. «Borrar todo» sigue existiendo.
+- Servidor: `supabase/06-empezar-de-cero-conservando-pacientes.sql` (función `sync_vaciar_conservar`). Antes de retirar copia todo a `respaldo_registros` (sólo visible desde el SQL Editor). Sin esta actualización instalada el botón avisa y **no borra nada**.
+- Pruebas: `supabase/tests/06-pruebas-conservar.sql` (17), `t/e2e_cero_conservar.py` (20, también con `PAGINA=index.html`).
+
 ## Novedades (2026-11-08, tarde)
 - **Clave olvidada:** se pide a la administración del sistema (Usuarios y permisos → Clave temporal), no al soporte del desarrollador.
 - **Donaciones:** la administración puede editar (medio, importe, mixto, con motivo) y quitar/restaurar donaciones; el servidor lo exige (`04-donaciones-admin.sql`). Las 38 donaciones de noviembre migradas de AppSheet quedaron «Quitadas» para volver a cargarlas con el medio correcto (respaldo en `respaldo_aportes_20261108`).

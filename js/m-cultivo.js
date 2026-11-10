@@ -358,21 +358,32 @@
   };
 
   /* ---------- empezar de cero (borra los datos de ejemplo, conserva usuarios, ajustes y menú) ---------- */
-  CM.vaciarDatos = function () {
+  /* conservar=true: quedan los pacientes, sus documentos (legDocs), seguimientos e historias clínicas del menú (2026-11-10) */
+  CM.vaciarDatos = function (conservar) {
     var d = CM.db, keep = { v: 1, cfg: 1, ong: 1, users: 1, perms: 1, rubros: 1, menu: 1, nube: 1, planes: 1, irubros: 1, org: 1, counters: 0, audit: 0 };
+    if (conservar) { keep.legDocs = 1; keep.seg = 1; keep.audit = 1; keep.counters = 1; }
     Object.keys(d).forEach(function (k) {
       if (keep[k]) return;
-      if (Array.isArray(d[k])) d[k] = []; else if (k === 'pacientes') d[k] = {}; else if (k === 'counters') d[k] = {};
+      if (Array.isArray(d[k])) d[k] = []; else if (k === 'pacientes') { if (!conservar) d[k] = {}; } else if (k === 'counters') d[k] = {};
     });
-    d.pacientes = {}; d.counters = {}; d.audit = []; d.cultivos = []; d.cultReg = []; d.cupones = []; d.cuponUsos = [];
-    if (d.menu) { d.menu.altas = []; d.menu.solicitudes = []; d.menu.turnos = []; d.menu.hcs = []; }
+    if (!conservar) { d.pacientes = {}; d.counters = {}; d.audit = []; }
+    d.cultivos = []; d.cultReg = []; d.cupones = []; d.cuponUsos = [];
+    if (d.menu) { d.menu.altas = []; d.menu.solicitudes = []; d.menu.turnos = []; if (!conservar) d.menu.hcs = []; }
     d.cfg.ejemplo = false;
-    CM.audit('Empezar de cero', 'Se borraron los datos de ejemplo (pacientes, lotes, donaciones, cajas, cultivo). Se conservaron usuarios, ajustes y menú.');
+    if (conservar) CM.audit('Empezar de cero (conservando pacientes)', 'Quedan ' + Object.keys(d.pacientes).length + ' pacientes con su legajo y ' + (d.legDocs || []).length + ' documentos; se borró lo demás.');
+    else CM.audit('Empezar de cero', 'Se borraron los datos de ejemplo (pacientes, lotes, donaciones, cajas, cultivo). Se conservaron usuarios, ajustes y menú.');
   };
   CM.acts['vaciar'] = function () {
     if (!CM.need('ajustes', 'admin')) return;
-    CM.modal.open({ title: 'Empezar de cero', body: '<p>Se borran <b>todos los datos cargados</b> (pacientes, lotes, dispensaciones, donaciones, comprobantes, cajas, cultivo, tareas) y queda el sistema vacío para cargar los datos reales. Se conservan usuarios, permisos, ajustes y el menú público.</p><p class="hint">Hacé antes un respaldo en Importar / Exportar si querés guardar algo. Esta acción no se puede deshacer.</p>', footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn bad" data-act="vaciar-ok">Borrar y empezar de cero</button>' });
+    CM.modal.open({ title: 'Empezar de cero', body: '<p>Se borran los datos cargados (lotes, dispensaciones, donaciones, comprobantes, cajas, cultivo, tareas) y queda el sistema listo para cargar los datos reales. Se conservan usuarios, permisos, ajustes y el menú público.</p>' +
+      '<label class="chk"><input type="radio" name="vcModo" value="conservar" checked> <span><b>Conservar los pacientes, sus legajos y documentos</b> (recomendado)</span></label><label class="chk"><input type="radio" name="vcModo" value="todo"> <span>Borrar todo, también los pacientes</span></label>' +
+      '<p class="hint">Hacé antes un respaldo en Importar / Exportar si querés guardar algo. Esta acción no se puede deshacer.</p>', footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn bad" data-act="vaciar-ok">Borrar y empezar de cero</button>' });
   };
-  CM.acts['vaciar-ok'] = function () { if (!CM.need('ajustes', 'admin')) return; CM.vaciarDatos(); CM.save(); CM.modal.close(true); g.location.hash = '#/inicio'; render(); CM.toast('Listo: el sistema quedó vacío.'); };
+  CM.acts['vaciar-ok'] = function () {
+    if (!CM.need('ajustes', 'admin')) return;
+    var r = document.querySelector('#modalRoot input[name=vcModo]:checked'), cons = !r || r.value === 'conservar';
+    CM.vaciarDatos(cons); CM.save(); CM.modal.close(true); g.location.hash = cons ? '#/pacientes' : '#/inicio'; render();
+    CM.toast(cons ? 'Listo: quedaron los pacientes con sus legajos y documentos.' : 'Listo: el sistema quedó vacío.');
+  };
   void tabs;
 })(window);

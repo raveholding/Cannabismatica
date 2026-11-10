@@ -534,7 +534,7 @@
       '<p class="err" role="alert" data-err></p><div class="row"><button class="btn pri" type="submit">Guardar ajustes</button></div></form>' +
       (CM.cfgExtra ? CM.cfgExtra() : '') +
       '<section class="card" style="margin-top:14px"><h2>Sobre esta versión de prueba</h2><ul style="margin:0;padding-left:20px;color:var(--mu)"><li>Todos los pacientes y movimientos son <b>ficticios</b> y se guardan sólo en este navegador (no viajan a ningún servidor).</li><li>La Factura C es una <b>simulación</b> sin validez fiscal: no se conecta con ARCA.</li><li>Los enlaces a Drive de los datos de ejemplo apuntan a Google Drive en general; en el sistema real cada paciente tiene sus dos carpetas.</li><li>Normativa (Ley 27.350, vigencias del REPROCANN, exención de la ONG) <b>[VERIFICAR con asesor legal y fuentes oficiales]</b>.</li></ul>' +
-      '<div class="row" style="margin-top:14px"><button class="btn bad" data-act="reset-demo">' + CM.icon('undo') + 'Restablecer datos de ejemplo</button><button class="btn bad" data-act="vaciar">' + CM.icon('trash') + 'Empezar de cero (borrar todo)</button></div></section>';
+      '<div class="row" style="margin-top:14px"><button class="btn bad" data-act="reset-demo">' + CM.icon('undo') + 'Restablecer datos de ejemplo</button><button class="btn bad" data-act="vaciar">' + CM.icon('trash') + 'Empezar de cero</button></div></section>';
   };
   function fl(l, inner) { return '<label class="fl"><span>' + esc(l) + '</span>' + inner + '</label>'; }
   function flr(lHtml, inner) { return '<label class="fl"><span>' + lHtml + '</span>' + inner + '</label>'; }

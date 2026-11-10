@@ -406,19 +406,50 @@
   CM.acts['imp-deshacer'] = function () { CM.toast('Con la nube activa no se puede deshacer una importación desde acá: pedile ayuda a VINCULAR BUSINESS.', true); };
 
   var COLS_VACIAR = ['pacientes', 'lotes', 'movs', 'disp', 'aportes', 'comps', 'seg', 'cajas', 'cmovs', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'm_altas', 'm_solic', 'm_turnos', 'm_hcs', 'tareas', 'staff'];
+  /* «Empezar de cero»: dos modos. «conservar» (2026-11-10, pedido de la fundación): quedan los pacientes con su legajo
+     (ficha, historia clínica, REPROCANN, seguimientos) y sus documentos; el resto se retira con respaldo en el servidor
+     (supabase/06-empezar-de-cero-conservando-pacientes.sql). «todo»: el comportamiento de siempre. */
+  var COLS_CONSERVAR = ['lotes', 'movs', 'disp', 'aportes', 'comps', 'cajas', 'cmovs', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'm_altas', 'm_solic', 'm_turnos', 'tareas', 'staff'];
+  function cuentaPac() { return Object.keys(CM.db.pacientes || {}).length; }
   CM.acts['vaciar'] = function () {
     if (!CM.need('ajustes', 'admin')) return;
-    CM.modal.open({ title: 'Empezar de cero', body: '<form id="fVC" data-form="vaciar" class="f" autocomplete="off" novalidate><div class="note bad"><b>Esto borra los datos cargados en la nube y en todos los equipos</b>: pacientes, lotes, dispensaciones, donaciones, comprobantes, cajas, cultivo, tareas y personal. Se conservan usuarios, permisos, ajustes, rubros y el menú. No se puede deshacer.</div>' + fl('Para confirmar, escribí BORRAR', '<input class="in" name="conf" autocomplete="off">') + '<p class="err" role="alert" data-err></p></form>', footer: '<button class="btn" data-act="modal-close">Cancelar</button><button class="btn bad" type="submit" form="fVC">Borrar los datos</button>' });
+    var np = cuentaPac(), nd = (CM.db.legDocs || []).length;
+    CM.modal.open({ title: 'Empezar de cero', body: '<form id="fVC" data-form="vaciar" class="f" autocomplete="off" novalidate>' +
+      '<fieldset class="f"><legend>¿Qué querés conservar?</legend>' +
+      '<label class="chk"><input type="radio" name="modo" value="conservar" checked> <span><b>Conservar los pacientes, sus legajos y documentos</b> (recomendado): quedan ' + np + ' paciente(s) con su ficha, historia clínica, REPROCANN y seguimientos, y ' + nd + ' documento(s) (consentimiento informado, REPROCANN, escaneos). Se borra todo lo demás: lotes, stock, dispensaciones, donaciones, comprobantes, cajas, sellos y membresías, inventario, cultivo, tareas, personal y pedidos de turno.</span></label>' +
+      '<label class="chk"><input type="radio" name="modo" value="todo"> <span><b>Borrar todo</b>, también los pacientes.</span></label></fieldset>' +
+      '<div class="note bad">Afecta a la nube y a <b>todos los equipos</b>. Se conservan usuarios, permisos, ajustes, rubros, planes, el menú y la auditoría. No se puede deshacer desde el sistema.</div>' +
+      fl('Para confirmar, escribí BORRAR', '<input class="in" name="conf" autocomplete="off">') + '<p class="err" role="alert" data-err></p></form>',
+      footer: '<button class="btn" data-act="modal-close">Cancelar</button><button class="btn bad" type="submit" form="fVC">Borrar los datos</button>' });
   };
+  function limpiarHashes(s, cols) { Object.keys(s.h).forEach(function (k) { if (cols.indexOf(k.split('|')[0]) > -1) { delete s.h[k]; delete s.sv[k]; } }); }
   CM.forms.vaciar = function (f) {
     if (!CM.need('ajustes', 'admin')) return;
+    var modo = (f.querySelector('input[name=modo]:checked') || {}).value || 'conservar';
     if (f.elements.conf.value.trim() !== 'BORRAR') return fail(f, 'conf', 'Escribí BORRAR en mayúsculas para confirmar.');
     var btn = document.querySelector('button[form=fVC]'); if (btn) btn.disabled = true;
+    if (modo === 'conservar') {
+      rpc('sync_vaciar_conservar', {}).then(function (r) {
+        var d = CM.db, s = d._s;
+        ['lotes', 'movs', 'disp', 'aportes', 'comps', 'cajas', 'cmovs', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'tareas', 'staff'].forEach(function (k) { d[k] = []; });
+        d.menu.altas = []; d.menu.solicitudes = []; d.menu.turnos = []; d.cfg.ejemplo = false;
+        limpiarHashes(s, COLS_CONSERVAR);
+        CM.audit('Empezar de cero (conservando pacientes)', 'Quedan ' + cuentaPac() + ' pacientes con su legajo y ' + (d.legDocs || []).length + ' documentos; se borró lo demás (lotes, dispensaciones, donaciones, cajas, cultivo, tareas, personal)'); CM.save();
+        CM.modal.close(true); g.location.hash = '#/pacientes'; render();
+        CM.toast('Listo: quedaron ' + ((r && r.pacientes) != null ? r.pacientes : cuentaPac()) + ' pacientes con sus legajos y documentos. Lo demás se borró.');
+      }, function (er) {
+        if (btn) btn.disabled = false;
+        var m = I.msgErr(er) || '';
+        if (er && (er.status === 404 || (er.body && er.body.code === 'PGRST202'))) m = 'Falta instalar la actualización del servidor (06-empezar-de-cero-conservando-pacientes.sql). No se borró nada.';
+        fail(f, 'conf', m || 'No se pudo borrar (¿sin conexión?). No se borró nada.');
+      });
+      return;
+    }
     rpc('sync_vaciar', {}).then(function () {
       var d = CM.db, s = d._s;
       d.pacientes = {}; ['lotes', 'movs', 'disp', 'aportes', 'comps', 'seg', 'cajas', 'cmovs', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'tareas', 'staff'].forEach(function (k) { d[k] = []; });
       d.menu.altas = []; d.menu.solicitudes = []; d.menu.turnos = []; d.menu.hcs = []; d.cfg.ejemplo = false; s.res = [];
-      Object.keys(s.h).forEach(function (k) { if (COLS_VACIAR.indexOf(k.split('|')[0]) > -1) { delete s.h[k]; delete s.sv[k]; } });
+      limpiarHashes(s, COLS_VACIAR);
       CM.audit('Empezar de cero', 'Se borraron los datos cargados (pacientes, lotes, donaciones, cajas, cultivo, tareas, personal)'); CM.save();
       CM.modal.close(true); g.location.hash = '#/inicio'; render(); CM.toast('Listo: los datos cargados se borraron.');
     }, function (er) { if (btn) btn.disabled = false; fail(f, 'conf', I.msgErr(er) || 'No se pudo borrar (¿sin conexión?).'); });
