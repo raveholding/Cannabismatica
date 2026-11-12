@@ -103,13 +103,15 @@
     if (m === 'verificando') return '<span class="pill p-info">Verificando Drive…</span>';
     return !cid ? '<span class="pill p-warn">Drive pendiente de configuración</span>' : D.conectado() ? '<span class="pill p-ok">Drive conectado</span>' : '<span class="pill">Drive sin conectar</span>';
   }
-  CM.legajoBanner = function () {
+  /* 2026-11-12: esta tarjeta va al FINAL de Pacientes (pedido de la fundación: hoy no la usan, pero queda a mano) */
+  CM.legajoBanner = function () { return ''; };
+  CM.legajoBannerFinal = function () {
     var pacs = Object.keys(CM.db.pacientes).map(function (k) { return CM.db.pacientes[k]; }), pend = CM.legajoPend();
     var sc = pacs.filter(sinCarpeta).length, ni = 0, nh = 0;
     pacs.forEach(function (p) { var f = CM.legajoForms(p); if (f.ing.k !== 'ok') ni++; if (f.hc.k === 'pend') nh++; });
     var oper = CM.can('pacientes', 'oper'), cid = !!(CM.db.ong && CM.db.ong.driveClientId);
     var hojaUrl = CM.db.ong && CM.db.ong.hojaLegajos && /^https:\/\//.test(CM.db.ong.hojaLegajos) ? CM.db.ong.hojaLegajos : '';
-    return '<section class="card" style="margin-bottom:14px"><div class="row sp"><h2 style="margin:0">Legajos: carpetas y formularios</h2>' + pillDrive() + '</div>' +
+    return '<section class="card" style="margin-top:14px"><div class="row sp"><h2 style="margin:0">Legajos: carpetas y formularios</h2>' + pillDrive() + '</div>' +
       '<div class="row" style="margin-top:8px"><span class="pill ' + (sc ? 'p-warn' : 'p-ok') + '">' + sc + ' sin carpeta</span><span class="pill ' + (ni ? 'p-warn' : 'p-ok') + '">' + ni + ' con ingreso sin completar</span><span class="pill ' + (nh ? 'p-warn' : 'p-ok') + '">' + nh + ' con historia clínica sin completar</span></div>' +
       '<p class="hint" style="margin:8px 0">Cada paciente que completa el formulario de ingreso queda con un legajo único. Con el Drive de la ONG conectado, el sistema crea su carpeta (<b>Legajos/legajo_DNI</b>) y su fila en la hoja de legajos. Los datos clínicos no se copian a la hoja.</p>' +
       (est.msg && !(CM.driveModo && CM.driveModo() === 'servidor') ? '<div class="note ' + (est.bad ? 'bad' : 'ok') + '" role="status">' + esc(est.msg) + '</div>' : '') +

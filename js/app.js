@@ -236,7 +236,7 @@
     return '<div class="page-h"><div><h1>Pacientes</h1><p>Identificados por DNI. Tocá una fila para abrir la ficha.</p></div><button class="btn pri" data-act="nuevo-paciente">' + CM.icon('plus') + 'Nuevo paciente (ingreso breve)</button></div>' +
       (CM.legajoBanner ? CM.legajoBanner() : '') + '<div class="card"><div class="row" style="margin-bottom:12px"><label class="sr" for="fpq">Filtrar por DNI o nombre</label><input id="fpq" class="in" style="max-width:340px" placeholder="Filtrar por DNI o nombre" autocomplete="off">' +
       '<label class="sr" for="fpe">Filtrar por estado</label><select id="fpe" class="in" style="max-width:260px"><option value="">Todos los estados</option><option value="valido">REPROCANN válido</option><option value="prox">Vence en 60 días o menos</option><option value="vencido">REPROCANN vencido</option><option value="tramite">En trámite</option><option value="sin">Sin REPROCANN</option><option value="hist">Historia clínica pendiente</option><option value="form">Formularios sin completar</option><option value="carp">Sin carpeta en Drive</option></select></div>' +
-      '<div class="tw"><table><thead><tr><th>Documento / legajo</th><th>Paciente</th><th>Teléfono</th><th>REPROCANN</th><th>Historia clínica</th><th>Última dispensación</th></tr></thead><tbody id="tbPac">' + filasPacientes('', '') + '</tbody></table></div></div>';
+      '<div class="tw"><table><thead><tr><th>Documento / legajo</th><th>Paciente</th><th>Teléfono</th><th>REPROCANN</th><th>Historia clínica</th><th>Última dispensación</th></tr></thead><tbody id="tbPac">' + filasPacientes('', '') + '</tbody></table></div></div>' + (CM.legajoBannerFinal ? CM.legajoBannerFinal() : '');
   };
 
   /* ---------- ficha del paciente ---------- */
