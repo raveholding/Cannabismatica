@@ -27,7 +27,17 @@
   function vacio(s) { return !s || /^[-–.]+$/.test(s) || /^(no|ninguna?|n\/a|na)$/i.test(s); }
 
   /* fechas como las devuelve Google («12/11/2026 14:54:56», «10/10/1997» o ISO) */
+  /* número de serie de planilla (días desde 30/12/1899, con la hora en la fracción): así llega al exportarla como .xlsx */
+  function serial(s) { var x = parseFloat(s); if (!/^\d{1,6}(\.\d+)?$/.test(String(s).trim()) || !(x > 0 && x < 80000)) return null; return new Date(Date.UTC(1899, 11, 30) + Math.floor(x * 86400 + 1e-6) * 1000); }
+  function canon(s) {
+    var d = serial(s), m; if (d) return d.toISOString().slice(0, 19).replace('T', ' ');
+    s = String(s || '').trim();
+    if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(s))) return m[3] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0') + ' ' + String(m[4] || '0').padStart(2, '0') + ':' + (m[5] || '00') + ':' + (m[6] || '00');
+    if ((m = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(s))) return m[1] + '-' + m[2] + '-' + m[3] + ' ' + (m[4] || '00') + ':' + (m[5] || '00') + ':' + (m[6] || '00');
+    return s;
+  }
   function fecha(s) {
+    var d0 = serial(s); if (d0) return d0.toISOString().slice(0, 10);
     s = String(s || '').trim(); var m;
     if ((m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s))) return m[1] + '-' + m[2] + '-' + m[3];
     if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s))) return m[3] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
@@ -47,7 +57,7 @@
   var R_SEG = { ts: /^marca temporal/, nombre: /nombre/, dni: /^dni|documento/, objetivos: /sintoma|patologia|objetivo/, vias: /vias de adm/, productos: /productos/, quim: /quimiotipo/, mejoras: /mejoras/,
     efectos: /efectos/, dejo: /dejo de realizar/, nueva: /mejoro o comenzo/, tipoAct: /que tipo de actividad/, habitos: /habitos/, comentario: /comentario/, genetica: /genetica/ };
   function tipoHoja(head) { var h = head.map(n).join('|'); if (/mejoras/.test(h) && /efectos/.test(h)) return 'seg'; if (/nacimiento/.test(h) && /(nombre y apellido|nombre completo|apellido y nombre)/.test(h)) return 'ing'; return ''; }
-  function clave(hoja, ts, dni) { return 'GF-' + CM.sha256(hoja + '|' + ts + '|' + dni).slice(0, 20); }
+  function clave(hoja, ts, dni) { return 'GF-' + CM.sha256(hoja + '|' + canon(ts) + '|' + dni).slice(0, 20); }
   function hcDe(k) { return (CM.db.menu.hcs || []).filter(function (x) { return x.nonce === k; })[0]; }
 
   /* ---------- formulario de ingreso ---------- */

@@ -14,7 +14,8 @@
 //   { accion: 'picker' }                       → admin: datos públicos para abrir el selector de Google
 //   { accion: 'vincular', items:[{fileId,nombre,legajo,dni}] } → admin: acceso directo al archivo anterior en la carpeta del legajo
 //   { accion: 'formularios', archivo }         → admin/supervisor/mostrador: lee las hojas «Respuestas de formulario…» de la planilla
-//        de respuestas de los Formularios de Google (elegida una vez con el selector). Sólo lectura; nunca escribe en la planilla.
+//        de respuestas de los Formularios de Google (elegida una vez con el selector), exportándola como .xlsx con la API de Drive
+//        (no hace falta habilitar la API de Sheets). Sólo lectura; nunca escribe en la planilla.
 //   { accion: 'planilla', ciclo, cicloNombre, nombre, version, hash, b64 }  → sube la planilla de cultivo (CSV)
 //        a «Planillas de cultivo · ONG / {ciclo} · {nombre}»; nunca pisa: archivo nuevo por versión, mismo contenido = no repite
 // GET ?code&state (vuelta desde Google): guarda el permiso y vuelve al sistema.
@@ -37,7 +38,6 @@ const RE_LEG = /^L-\d{6}-[2-9A-HJKMNP-Z]{6}$/;
 const RE_ID = /^[A-Za-z0-9_-]{10,120}$/;
 const RE_CICLO = /^CU-[A-Z0-9-]{4,24}$/;
 const MAX_CSV = 5 * 1024 * 1024;
-const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
 const MAX_FILAS = 3000;
 
 class Falla extends Error { status: number; codigo: string; constructor(status: number, codigo: string, msg: string) { super(msg); this.status = status; this.codigo = codigo; } }
@@ -50,6 +50,57 @@ function hex(b: ArrayBuffer) { return Array.from(new Uint8Array(b)).map((x) => x
 async function hmac(clave: string, dato: string) { const k = await crypto.subtle.importKey('raw', te.encode(clave), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return b64u(new Uint8Array(await crypto.subtle.sign('HMAC', k, te.encode(dato)))); }
 function q(s: string) { return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"; }
 function limpio(s: string, n: number) { return String(s || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n); }
+
+/* ---------- planilla de Google exportada como .xlsx (sólo Drive API; no requiere la API de Sheets) ---------- */
+async function inflar(b: Uint8Array) {
+  const ds = new (globalThis as any).DecompressionStream('deflate-raw');
+  const out = new Response(new Blob([b]).stream().pipeThrough(ds));
+  return new Uint8Array(await out.arrayBuffer());
+}
+export async function leerZip(z: Uint8Array) {
+  const dv = new DataView(z.buffer, z.byteOffset, z.byteLength), td = new TextDecoder();
+  let e = -1; for (let i = z.length - 22; i >= Math.max(0, z.length - 66000); i--) if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw new Falla(422, 'xlsx', 'La planilla exportada no se pudo leer.');
+  const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true);
+  const files: Record<string, Uint8Array> = {};
+  for (let k = 0; k < n; k++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const met = dv.getUint16(p + 10, true), cs = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = td.decode(z.subarray(p + 46, p + 46 + nl));
+    const ini = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true), data = z.subarray(ini, ini + cs);
+    if (/^xl\/(workbook\.xml|_rels\/workbook\.xml\.rels|sharedStrings\.xml|worksheets\/[^/]+\.xml)$/.test(name)) files[name] = met === 8 ? await inflar(data) : met === 0 ? data : new Uint8Array();
+    p += 46 + nl + xl + cl;
+  }
+  return files;
+}
+function ent(s: string) { return s.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (m, c) => c[0] === '#' ? String.fromCodePoint(c[1] === 'x' || c[1] === 'X' ? parseInt(c.slice(2), 16) : parseInt(c.slice(1), 10)) : ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" } as any)[c.toLowerCase()]); }
+function textos(x: string) { let o = ''; for (const m of x.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)) o += m[1]; return ent(o); }
+function colN(r: string) { const l = (/^[A-Z]+/.exec(r) || [''])[0]; let n = 0; for (const ch of l) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; }
+export async function leerXlsx(bytes: Uint8Array, filtro: (t: string) => boolean, maxFilas: number) {
+  const f = await leerZip(bytes), td = new TextDecoder(), txt = (k: string) => f[k] ? td.decode(f[k]) : '';
+  const sst = [...txt('xl/sharedStrings.xml').matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) => textos(m[1]));
+  const rels: Record<string, string> = {}; for (const m of txt('xl/_rels/workbook.xml.rels').matchAll(/<Relationship\b[^>]*>/g)) { const id = /\bId="([^"]+)"/.exec(m[0]), tg = /\bTarget="([^"]+)"/.exec(m[0]); if (id && tg) rels[id[1]] = tg[1].replace(/^\/?(xl\/)?/, 'xl/'); }
+  const out: { titulo: string; filas: string[][] }[] = [];
+  for (const m of txt('xl/workbook.xml').matchAll(/<sheet\b[^>]*\/?>/g)) {
+    const nom = /\bname="([^"]*)"/.exec(m[0]), rid = /\br:id="([^"]+)"/.exec(m[0]); if (!nom || !rid) continue;
+    const titulo = ent(nom[1]); if (!filtro(titulo)) continue;
+    const xml = txt(rels[rid[1]] || ''), filas: string[][] = [];
+    for (const r of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
+      if (filas.length > maxFilas) break;
+      const fila: string[] = [];
+      for (const c of r[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+        const at = c[1], ref = /\br="([A-Z]+)\d+"/.exec(at), t = (/\bt="([^"]+)"/.exec(at) || ['', 'n'])[1], body = c[2] || '';
+        if (!ref) continue; const i = colN(ref[1]); if (i > 25) continue;
+        const v = (/<v>([\s\S]*?)<\/v>/.exec(body) || ['', ''])[1];
+        const val = t === 's' ? (sst[Number(v)] || '') : t === 'inlineStr' ? textos(body) : t === 'b' ? (v === '1' ? 'TRUE' : 'FALSE') : ent(v);
+        while (fila.length < i) fila.push(''); fila[i] = String(val).slice(0, 2000);
+      }
+      filas.push(fila);
+    }
+    out.push({ titulo, filas });
+  }
+  return out;
+}
 
 /* ---------- base (PostgREST) ---------- */
 function base(d: Deps) {
@@ -232,14 +283,17 @@ export async function manejar(req: Request, d: Deps): Promise<Response> {
       const fid = String(b.archivo || '');
       if (!RE_ID.test(fid)) return json({ ok: false, error: 'Planilla inválida.' }, 400, h);
       const at2 = await tokenAcceso(d, tenant, con.token);
-      const meta: any = await g(d, at2, `${SHEETS}/${fid}?fields=${encodeURIComponent('properties.title,sheets.properties.title')}`);
-      if (!meta) return json({ ok: false, error: 'El sistema no tiene acceso a esa planilla: un administrador tiene que elegirla con el selector, con la cuenta conectada.', codigo: 'no_acceso' }, 404, h);
-      const titulos: string[] = ((meta.sheets || []) as any[]).map((x) => String(x && x.properties && x.properties.title || '')).filter((x) => /^(respuestas de formulario|form responses)/i.test(x)).slice(0, 6);
-      if (!titulos.length) return json({ ok: false, error: 'Esa planilla no tiene hojas de respuestas de formulario.', codigo: 'sin_respuestas' }, 422, h);
-      const qs = titulos.map((x) => 'ranges=' + encodeURIComponent("'" + x.replace(/'/g, "''") + "'!A1:Z" + (MAX_FILAS + 1))).join('&');
-      const vr: any = await g(d, at2, `${SHEETS}/${fid}/values:batchGet?${qs}&valueRenderOption=FORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`);
-      const hojas = titulos.map((x, i) => ({ titulo: x, filas: ((vr && vr.valueRanges && vr.valueRanges[i] && vr.valueRanges[i].values) || []).slice(0, MAX_FILAS + 1).map((f: any[]) => (f || []).slice(0, 26).map((c: any) => String(c == null ? '' : c).slice(0, 2000))) }));
-      return json({ ok: true, titulo: limpio(meta.properties && meta.properties.title || '', 120), hojas }, 200, h);
+      const meta: any = await g(d, at2, `${DRIVE}/${fid}?fields=id,name,mimeType,trashed`);
+      if (!meta || meta.trashed) return json({ ok: false, error: 'El sistema no tiene acceso a esa planilla: un administrador tiene que elegirla con el selector, con la cuenta conectada.', codigo: 'no_acceso' }, 404, h);
+      if (meta.mimeType !== 'application/vnd.google-apps.spreadsheet') return json({ ok: false, error: 'Eso no es una planilla de Google.', codigo: 'sin_respuestas' }, 422, h);
+      // se exporta como .xlsx con la API de Drive (la misma que ya usa el sistema) y se leen sólo las hojas de respuestas
+      const rx = await d.fetch(`${DRIVE}/${fid}/export?mimeType=${encodeURIComponent('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}`, { headers: { authorization: 'Bearer ' + at2 } });
+      if (!rx.ok) { const st = rx.status; if (st === 401) throw new Falla(409, 'reconectar', 'Google rechazó el acceso: hay que volver a conectar Google Drive.'); throw new Falla(502, 'google', 'Google no dejó exportar la planilla (' + st + ').'); }
+      const bytes = new Uint8Array(await rx.arrayBuffer());
+      if (!bytes.length || bytes.length > 10 * 1024 * 1024) return json({ ok: false, error: 'La planilla está vacía o es demasiado grande.' }, 413, h);
+      const hojas = (await leerXlsx(bytes, (t) => /^(respuestas de formulario|form responses)/i.test(t), MAX_FILAS)).slice(0, 6);
+      if (!hojas.length) return json({ ok: false, error: 'Esa planilla no tiene hojas de respuestas de formulario.', codigo: 'sin_respuestas' }, 422, h);
+      return json({ ok: true, titulo: limpio(meta.name || '', 120), hojas }, 200, h);
     }
     if (b.accion === 'picker') {
       // datos PÚBLICOS para abrir el selector de Google (Picker) en el navegador: ID de cliente, clave de API del navegador

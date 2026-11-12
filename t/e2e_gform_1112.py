@@ -33,8 +33,8 @@ with sync_playwright() as pw:
       CM.driveSrv=CM.driveSrv||{};CM.driveSrv.conectado=true;
       CM.pickerElegir=function(o){window.__pick=o;return Promise.resolve([{id:'HOJA00000000001',name:'CANNABISMATICA'}]);};
       N._fn=function(fn,b){window.__calls.push(b.accion);if(b.accion==='formularios'){if(b.archivo!=='HOJA00000000001')return Promise.reject(new Error('sin acceso'));
-        return Promise.resolve({ok:true,titulo:'CANNABISMATICA',hojas:[{titulo:'Respuestas de formulario 2',filas:%s},{titulo:'Respuestas de formulario 1',filas:%s}]});}
-        if(b.accion==='estado')return Promise.resolve({ok:true,configurado:true,conectado:true});return Promise.reject(new Error('?'));};})()""" % (json.dumps(seg), json.dumps(ing)))
+        const ing=window.__ing||%s;return Promise.resolve({ok:true,titulo:'CANNABISMATICA',hojas:[{titulo:'Respuestas de formulario 2',filas:%s},{titulo:'Respuestas de formulario 1',filas:ing}]});}
+        if(b.accion==='estado')return Promise.resolve({ok:true,configurado:true,conectado:true});return Promise.reject(new Error('?'));};})()""" % (json.dumps(ing), json.dumps(seg)))
     p.goto(U + '#/inicio'); p.wait_for_timeout(100); p.goto(U + '#/solicitudes'); p.wait_for_timeout(500)
     chk(p.locator('main', has_text='Formularios de Google').count() == 1 and p.locator('[data-act=gf-elegir]').count() == 1, 'Solicitudes: tarjeta «Formularios de Google» con «Elegir la planilla»')
     n0 = ev("Object.keys(CM.db.pacientes).length")
@@ -58,6 +58,13 @@ with sync_playwright() as pw:
     p.click('[data-act=gf-leer]'); p.wait_for_timeout(600)
     chk([ev("Object.keys(CM.db.pacientes).length"), ev("CM.db.seg.length"), ev("CM.db.menu.hcs.length")] == [n1, s1, h1], 'leer de nuevo no duplica nada')
     chk('Sin respuestas nuevas' in p.inner_text('main'), 'informa «Sin respuestas nuevas»')
+    # la misma respuesta leída como .xlsx (fecha como número de serie) tampoco se duplica
+    ing2 = json.loads(json.dumps(ing)); ing2[2][0] = '46338.62149060185'; ing2[2][3] = '35713'
+    ev("window.__ing=%s" % json.dumps(ing2)); p.click('[data-act=gf-leer]'); p.wait_for_timeout(600)
+    chk([ev("Object.keys(CM.db.pacientes).length"), ev("CM.db.menu.hcs.length")] == [n1, h1], 'la misma respuesta con fecha en número de serie (.xlsx) no se duplica')
+    n2 = ev("Object.keys(CM.db.pacientes).length"); ing3 = json.loads(json.dumps(ing2)); ing3.append(['46338.7', 'X', 'Serie Ficticia', '35713', '99100077', 'c', '4400', '3875000077', 's@example.com', '', '', '', '', ''])
+    ev("window.__ing=%s" % json.dumps(ing3)); p.click('[data-act=gf-leer]'); p.wait_for_timeout(600)
+    chk(ev("(CM.db.pacientes['99100077']||{}).nac") == '1997-10-10' and ev("Object.keys(CM.db.pacientes).length") == n2 + 1, 'fechas en número de serie: nacimiento bien leído')
     # aprobar
     p.locator('tr', has_text='Francisco Ficticio').locator('[data-act=hc-ok]').click(); p.wait_for_timeout(300)
     chk(not ev("CM.db.pacientes['99100001'].revisar"), 'se aprueba como cualquier solicitud')
