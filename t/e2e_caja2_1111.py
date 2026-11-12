@@ -127,7 +127,7 @@ with sync_playwright() as pw:
 
     # ---------- 7) caja principal, traspasos y consolidado ----------
     ir('#/cajas-tr')
-    chk(p.locator('h1', has_text='Cajas y traspasos').count() == 1 and p.locator('#nav a', has_text='Cajas y traspasos').count() == 1, 'pantalla y menú «Cajas y traspasos»')
+    chk(p.locator('h1', has_text='Cajas y traspasos').count() == 1 and p.locator('.ux-grp a', has_text='Cajas y traspasos').count() == 1, 'pantalla «Cajas y traspasos» (pestaña de Gestión de caja)')
     p.click('[data-act=cp-abrir]'); p.wait_for_timeout(200); p.fill('#fCP [name=ini]', '0'); submit('fCP')
     cp = ev("CM.cajaPrincipal() && CM.cajaPrincipal().id")
     chk(cp == 'CJ-P-00001', 'caja principal abierta: %s' % cp)

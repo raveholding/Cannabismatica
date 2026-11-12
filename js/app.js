@@ -55,7 +55,7 @@
   function yymm() { var h = CM.hoy(); return h.slice(2, 4) + h.slice(5, 7); }
 
   /* ---------- navegación y ruteo ---------- */
-  var MOD_DE_VISTA = { paciente: 'pacientes', 'cajas-cerradas': 'cerradas', 'cajas-tr': 'caja', 'menu-publico': 'menu', solicitudes: 'pacientes' };
+  var MOD_DE_VISTA = { paciente: 'pacientes', 'cajas-cerradas': 'cerradas', 'cajas-tr': 'caja', kiosco: 'personal', 'menu-publico': 'menu', solicitudes: 'pacientes' };
   function modDe(v) { return MOD_DE_VISTA[v] || v; }
   CM.visible = function (n) {
     if (n[3] === 'inicio') return true;
@@ -485,7 +485,7 @@
     var db = CM.db, h = CM.hoy();
     var stock = '<div class="tw"><table><thead><tr><th>Lote</th><th>Preparado</th><th>Tipo</th><th>Quimiotipo</th><th>Ciclo de origen</th><th class="n">Aporte sugerido</th><th class="n">Ingresó</th><th class="n">Disponible</th><th>Estado</th></tr></thead><tbody>' + db.lotes.map(function (l) {
       var s = CM.stockLote(l.id), ing = db.movs.filter(function (m) { return m.lote === l.id && m.tipo === 'ingreso'; }).reduce(function (a, m) { return a + m.cant; }, 0);
-      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td>' + (l.cu ? esc(cicloTxt(l.cu)) : '<span class="hint">Sin ciclo</span>') + '</td><td class="n">' + (CM.sugLote(l) ? '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '" aria-label="Cambiar aporte sugerido de ' + esc(l.id) + '">' + esc(CM.fmtMoney(CM.sugLote(l))) + '</button>' : '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '">Cargar</button>') + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td></tr>';
+      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td>' + (l.cu ? esc(cicloTxt(l.cu)) + (l.genVar ? '<br><small class="hint">Genética: ' + esc(l.genVar) + '</small>' : '') : '<span class="hint">Sin ciclo</span>') + '</td><td class="n">' + (CM.sugLote(l) ? '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '" aria-label="Cambiar aporte sugerido de ' + esc(l.id) + '">' + esc(CM.fmtMoney(CM.sugLote(l))) + '</button>' : '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '">Cargar</button>') + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td></tr>';
     }).join('') + '</tbody></table></div>';
     var movs = db.movs.slice().sort(function (a, b) { return b.ts.localeCompare(a.ts) || b.id.localeCompare(a.id); }).slice(0, 25);
     var mt = '<div class="tw"><table><thead><tr><th>Fecha</th><th>Lote</th><th>Movimiento</th><th class="n">Cantidad</th><th>Referencia / motivo</th><th>Usuario</th></tr></thead><tbody>' + movs.map(function (m) {
@@ -493,7 +493,7 @@
       return '<tr><td>' + CM.fmtFecha(m.fecha) + '</td><td>' + esc(m.lote) + '</td><td>' + esc({ ingreso: 'Ingreso', dispensacion: 'Dispensación', ajuste: 'Ajuste', anulacion: 'Anulación de dispensación' }[m.tipo] || m.tipo) + '</td><td class="n">' + (m.cant > 0 ? '+' : '') + esc(CM.fmtNum(m.cant)) + ' ' + esc(l ? l.unidad === 'g' ? 'g' : 'u.' : '') + '</td><td>' + esc((m.ref ? m.ref + ' ' : '') + (m.motivo || '')) + '</td><td>' + esc(m.user) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
     return '<div class="page-h"><div><h1>Trazabilidad / Stock</h1><p>Control del stock de cada lote y de las cantidades dispensadas para la auditoría interna. El stock se calcula sumando movimientos: nada se edita ni se borra, se corrige con un movimiento nuevo.</p></div>' +
-      '<div class="row"><button class="btn" data-act="lote-nuevo">' + CM.icon('plus') + 'Nuevo lote</button><button class="btn" data-act="stock-ajuste">Ajustar stock</button><button class="btn" data-act="lote-ciclo">Ciclo de un lote</button><button class="btn" data-act="lote-sug">Aporte sugerido</button></div></div>' +
+      '<div class="row"><button class="btn" data-act="lote-nuevo">' + CM.icon('plus') + 'Nuevo lote</button><button class="btn" data-act="stock-ajuste">Ajustar stock</button><button class="btn" data-act="lote-ciclo">Ciclo de un lote</button><button class="btn" data-act="lote-gen">Genética de un lote</button><button class="btn" data-act="lote-sug">Aporte sugerido</button></div></div>' +
       '<section class="card"><h2>Stock disponible por lote</h2>' + stock + '</section>' +
       '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Dispensaciones por período</h2><div class="row"><button class="btn sm" data-act="csv-disp">' + CM.icon('dl') + 'Exportar CSV</button><button class="btn sm" data-act="print-tr">' + CM.icon('print') + 'Imprimir informe</button></div></div>' +
       '<div class="row" style="margin:10px 0 14px"><label class="fl" style="max-width:190px"><span>Desde</span><input id="trDesde" type="date" class="in" value="' + h.slice(0, 8) + '01"></label><label class="fl" style="max-width:190px"><span>Hasta</span><input id="trHasta" type="date" class="in" value="' + h + '"></label>' +
@@ -824,7 +824,7 @@
   function actualizarLote() {
     var sel = $('#dsLote'); if (!sel) return;
     var l = CM.lote(sel.value), u = $('#dsUni'), d = $('#dsDisp'), oc = $('#dsCu');
-    if (oc) oc.innerHTML = !l ? '' : l.cu ? 'Origen de cultivo: <b>' + esc(cicloTxt(l.cu)) + '</b> (sale del lote).' : 'Este lote no tiene ciclo de cultivo asignado: la dispensación queda sin origen. Se asigna en Trazabilidad / Stock → «Ciclo de un lote».';
+    if (oc) oc.innerHTML = !l ? '' : l.cu ? 'Origen de cultivo: <b>' + esc(cicloTxt(l.cu)) + '</b>' + (l.genVar ? ' · genética <b>' + esc(l.genVar) + '</b>' : '') + ' (sale del lote).' : 'Este lote no tiene ciclo de cultivo asignado: la dispensación queda sin origen. Se asigna en Trazabilidad / Stock → «Ciclo de un lote».';
     if (!l) { u.textContent = ''; d.textContent = ''; return; }
     u.textContent = '(' + (l.unidad === 'g' ? 'gramos' : l.unidad === 'frasco' ? 'frascos' : 'unidades') + ')';
     d.textContent = 'Disponible: ' + cantTxt(CM.stockLote(l.id), l.unidad);
@@ -861,7 +861,7 @@
     if (aporte > 0) { cb = CM.leerCambio(f, aporte, e.medio.value, mix && mix.pays); if (cb.err) return fail(f, cb.campo, cb.err); }
     f.dataset.busy = '1';
     var h = CM.hoy(), id = CM.nextId('D');
-    CM.db.disp.push({ id: id, fecha: h, ts: new Date().toISOString(), dni: dni, lote: l.id, prod: l.prod, nombre: l.nombre, quim: l.quim, unidad: l.unidad, cant: cant, indic: e.indic.value.trim(), obs: obs, user: CM.db.cfg.operador, aporte: '', anulada: null, cu: cu || '', tipoSeg: 'dispensación' });
+    CM.db.disp.push({ id: id, fecha: h, ts: new Date().toISOString(), dni: dni, lote: l.id, prod: l.prod, nombre: l.nombre, quim: l.quim, unidad: l.unidad, cant: cant, indic: e.indic.value.trim(), obs: obs, user: CM.db.cfg.operador, aporte: '', anulada: null, cu: cu || '', gen: l.gen || '', genVar: l.genVar || '', tipoSeg: 'dispensación' });
     CM.addMov(l.id, 'dispensacion', -cant, id, '');
     var ap = null, comp = null;
     if (aporte > 0) {

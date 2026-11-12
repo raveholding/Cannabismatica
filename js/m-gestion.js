@@ -513,7 +513,7 @@
     CM.save(); CM.modal.close(true); render(); CM.toast('Guardado.');
   };
   function carnetHtml(e) {
-    return '<div class="tarj"><div class="tj-h"><img src="assets/logo.png" alt="Cannabismatica"></div><div class="tj-b"><div class="tj-n">' + esc(e.nombre) + '</div><div class="tj-d">' + esc(e.cargo) + '</div></div><div class="tj-q">' + CM.qrSvg(CM.tokenEmp(e)) + '</div><div class="tj-f">Carnet de personal · ejemplo</div></div>';
+    return '<div class="tarj"><div class="tj-h"><img src="assets/logo.png" alt="Cannabismatica"></div><div class="tj-b"><div class="tj-n">' + esc(e.nombre) + '</div><div class="tj-d">' + esc(e.cargo) + '</div></div><div class="tj-q">' + CM.qrSvg(CM.tokenEmp(e)) + '</div><div class="tj-f">Carnet de personal</div></div>';
   }
   CM.acts['emp-carnet'] = function (t) {
     var e = sel(CM.db.staff, t.getAttribute('data-id'));

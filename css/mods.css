@@ -280,3 +280,18 @@ output.in.ro.big{font-size:20px;color:var(--ac)}
 .cambio[hidden]{display:none}
 .cambio-ok{font-size:1.05rem}
 tr.tot td{border-top:2px solid var(--bd2);background:var(--s2)}
+/* trazabilidad por genética: sala → genética → lotes → dispensaciones */
+ol.traz{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0;margin:0 0 14px;counter-reset:t}
+ol.traz li{position:relative;background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+ol.traz li small{color:var(--mu);font-size:12px}ol.traz li b{font-size:1.05rem}
+ol.traz li:not(:last-child)::after{content:'→';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:var(--ac);font-weight:700}
+@media (max-width:640px){ol.traz{grid-template-columns:1fr 1fr}ol.traz li::after{display:none}}
+/* RR. HH.: kiosco con PIN y calendario del equipo */
+.kiosco{max-width:420px;margin:20px auto;text-align:center;display:grid;gap:12px}
+.kiosco h1{font-size:1.8rem}
+.kio-v{display:block;font:600 2.2rem/1.2 var(--f-head);letter-spacing:.2em;padding:14px;border:1px solid var(--bd2);border-radius:16px;background:var(--s2);min-height:64px}
+.kio-k{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kio-k .btn{min-height:72px;font-size:1.6rem;justify-content:center}
+.cal-d .cal-aus{display:block;font-size:11px;color:var(--info);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-d.hoy{outline:2px solid var(--ac);outline-offset:-2px}
+.tabs .nav-badge{margin-left:6px}

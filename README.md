@@ -5,6 +5,12 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-11) · Etapas 2 a 4: cultivo por genética, RR. HH. y diseño
+- **Cultivo** (`js/m-cultivo2.js`): varias genéticas por sala con trazabilidad propia: «Cosecha → lote» por genética (también en partes), «Genética de un lote» en Trazabilidad / Stock, la dispensación guarda `gen`/`genVar`, «Ver trazabilidad» (sala → genética → lotes → dispensaciones → legajo, CSV). Los registros diarios pueden indicar la genética.
+- **RR. HH.** (`js/m-rrhh.js`): permiso nuevo `rrhh`; legajos con jornada, contacto y vacaciones (staff) y datos privados aparte (colección `rhpriv`: CUIL, remuneración, documentos con vencimiento); fichaje con PIN en **modo kiosco** (`#/kiosco`, hash + bloqueo), QR con cámara, NFC real vinculado por número, celular con geocerca (guarda sólo la distancia); carnets firmados con secreto de la fundación; calendario; **pedidos** (colección `rhsol`) con 1 o 2 niveles de aprobación y saldo de vacaciones; **liquidación interna** (colección `rhliq`, versiones selladas) con horas extra, tardanzas, ausencias, adelantos y deducciones configurables [VERIFICAR con el contador]; **Mi portal**.
+- **Diseño** (`js/m-ux.js`, `css/ux.css`): tema Claro · Oscuro · Sistema por equipo (sin elección queda claro), «Gestión de caja» con pestañas, buscador **Ctrl + K** tolerante a errores, avisos en la barra, mini gráficos de 14 días, tablas ordenables, transiciones.
+- Servidor: `supabase/08-rrhh.sql` (colecciones rhpriv, rhsol, rhliq y permiso rrhh). Pruebas: `t/e2e_cultivo_gen_1111.py` (30), `t/e2e_rrhh_1111.py` (61), `t/e2e_ux_1111.py` (33).
+
 ## Novedades (2026-11-11) · Etapa 1: aporte sugerido, 5+1, cambio y caja v2
 - **Dispensación**: aporte sugerido por unidad en cada lote (Trazabilidad / Stock → «Aporte sugerido»; un lote nuevo hereda el de la misma genética). Subtotal, descuento **5+1** (cada 5, 1 sin aporte) y total se calculan solos y se pueden cambiar: la donación sigue siendo voluntaria.
 - **Recibido y cambio** (dispensación y donación suelta; efectivo, transferencia de más o parte en efectivo de un pago mixto): en la caja entra lo recibido y sale «Cambio entregado» en efectivo.

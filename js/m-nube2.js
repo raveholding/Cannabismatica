@@ -405,11 +405,11 @@
   CM.acts['reset-demo'] = function () {}; CM.acts['reset-ok'] = function () {};
   CM.acts['imp-deshacer'] = function () { CM.toast('Con la nube activa no se puede deshacer una importación desde acá: pedile ayuda a VINCULAR BUSINESS.', true); };
 
-  var COLS_VACIAR = ['pacientes', 'lotes', 'movs', 'disp', 'aportes', 'comps', 'seg', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'm_altas', 'm_solic', 'm_turnos', 'm_hcs', 'tareas', 'staff'];
+  var COLS_VACIAR = ['pacientes', 'lotes', 'movs', 'disp', 'aportes', 'comps', 'seg', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'm_altas', 'm_solic', 'm_turnos', 'm_hcs', 'tareas', 'staff', 'rhpriv', 'rhsol', 'rhliq'];
   /* «Empezar de cero»: dos modos. «conservar» (2026-11-10, pedido de la fundación): quedan los pacientes con su legajo
      (ficha, historia clínica, REPROCANN, seguimientos) y sus documentos; el resto se retira con respaldo en el servidor
      (supabase/06-empezar-de-cero-conservando-pacientes.sql). «todo»: el comportamiento de siempre. */
-  var COLS_CONSERVAR = ['lotes', 'movs', 'disp', 'aportes', 'comps', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'm_altas', 'm_solic', 'm_turnos', 'tareas', 'staff'];
+  var COLS_CONSERVAR = ['lotes', 'movs', 'disp', 'aportes', 'comps', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'm_altas', 'm_solic', 'm_turnos', 'tareas', 'staff', 'rhpriv', 'rhsol', 'rhliq'];
   function cuentaPac() { return Object.keys(CM.db.pacientes || {}).length; }
   CM.acts['vaciar'] = function () {
     if (!CM.need('ajustes', 'admin')) return;
@@ -431,7 +431,7 @@
     if (modo === 'conservar') {
       rpc('sync_vaciar_conservar', {}).then(function (r) {
         var d = CM.db, s = d._s;
-        ['lotes', 'movs', 'disp', 'aportes', 'comps', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'tareas', 'staff'].forEach(function (k) { d[k] = []; });
+        ['lotes', 'movs', 'disp', 'aportes', 'comps', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'tareas', 'staff', 'rhpriv', 'rhsol', 'rhliq'].forEach(function (k) { d[k] = []; });
         d.menu.altas = []; d.menu.solicitudes = []; d.menu.turnos = []; d.cfg.ejemplo = false;
         limpiarHashes(s, COLS_CONSERVAR);
         CM.audit('Empezar de cero (conservando pacientes)', 'Quedan ' + cuentaPac() + ' pacientes con su legajo y ' + (d.legDocs || []).length + ' documentos; se borró lo demás (lotes, dispensaciones, donaciones, cajas, cultivo, tareas, personal)'); CM.save();
@@ -447,7 +447,7 @@
     }
     rpc('sync_vaciar', {}).then(function () {
       var d = CM.db, s = d._s;
-      d.pacientes = {}; ['lotes', 'movs', 'disp', 'aportes', 'comps', 'seg', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'tareas', 'staff'].forEach(function (k) { d[k] = []; });
+      d.pacientes = {}; ['lotes', 'movs', 'disp', 'aportes', 'comps', 'seg', 'cajas', 'cmovs', 'ctransf', 'cortesx', 'fichas', 'sellos', 'cupones', 'cuponUsos', 'membresias', 'insumos', 'imovs', 'cultivos', 'cultReg', 'tareas', 'staff', 'rhpriv', 'rhsol', 'rhliq'].forEach(function (k) { d[k] = []; });
       d.menu.altas = []; d.menu.solicitudes = []; d.menu.turnos = []; d.menu.hcs = []; d.cfg.ejemplo = false; s.res = [];
       limpiarHashes(s, COLS_VACIAR);
       CM.audit('Empezar de cero', 'Se borraron los datos cargados (pacientes, lotes, donaciones, cajas, cultivo, tareas, personal)'); CM.save();

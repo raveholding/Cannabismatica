@@ -276,7 +276,7 @@
     };
     return acc;
   }
-  var ARR = { lotes: 0, movs: 'ts', disp: 'ts', aportes: 'ts', comps: 0, seg: 0, audit: 'ts-desc', rubros: 0, cajas: 'apTs', cmovs: 'ts', staff: 0, fichas: 'ts', tareas: 0, org: 0, sellos: 'ts', cupones: 0, cuponUsos: 'ts', planes: 0, membresias: 0, irubros: 0, insumos: 0, imovs: 'ts', cultivos: 0, cultReg: 'ts', legDocs: 'ts', ctransf: 'ts', cortesx: 'ts' };
+  var ARR = { lotes: 0, movs: 'ts', disp: 'ts', aportes: 'ts', comps: 0, seg: 0, audit: 'ts-desc', rubros: 0, cajas: 'apTs', cmovs: 'ts', staff: 0, fichas: 'ts', tareas: 0, org: 0, sellos: 'ts', cupones: 0, cuponUsos: 'ts', planes: 0, membresias: 0, irubros: 0, insumos: 0, imovs: 'ts', cultivos: 0, cultReg: 'ts', legDocs: 'ts', ctransf: 'ts', cortesx: 'ts', rhpriv: 0, rhsol: 'ts', rhliq: 'ts' };
   Object.keys(ARR).forEach(function (col) {
     COLS[col] = arrAcc(col, function () { return CM.db[col]; }, function (v) { CM.db[col] = v; }, ARR[col]);
   });
@@ -311,7 +311,7 @@
     var m = CM.db.menu, eq = (CM.db._s && CM.db._s.eq) || 0;
     (m.versiones || []).forEach(function (x) { if (x.id == null) x.id = 'V' + x.v + '-' + eq; });
     ['altas', 'solicitudes', 'turnos', 'hcs'].forEach(function (k) { if (!Array.isArray(m[k])) m[k] = []; });
-    ['cultivos', 'cultReg', 'staff', 'fichas', 'sellos', 'tareas', 'org', 'cupones', 'cuponUsos', 'planes', 'membresias', 'irubros', 'insumos', 'imovs', 'cmovs', 'ctransf', 'cortesx', 'cajas', 'comps', 'seg', 'audit', 'disp', 'aportes', 'movs', 'lotes', 'rubros', 'imports', 'contactos'].forEach(function (k) { if (!Array.isArray(CM.db[k])) CM.db[k] = []; });
+    ['cultivos', 'cultReg', 'staff', 'fichas', 'sellos', 'tareas', 'org', 'cupones', 'cuponUsos', 'planes', 'membresias', 'irubros', 'insumos', 'imovs', 'cmovs', 'ctransf', 'cortesx', 'rhpriv', 'rhsol', 'rhliq', 'cajas', 'comps', 'seg', 'audit', 'disp', 'aportes', 'movs', 'lotes', 'rubros', 'imports', 'contactos'].forEach(function (k) { if (!Array.isArray(CM.db[k])) CM.db[k] = []; });
     if (!CM.db.pacientes || typeof CM.db.pacientes !== 'object') CM.db.pacientes = {};
   }
 

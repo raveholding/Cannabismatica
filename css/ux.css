@@ -1,0 +1,88 @@
+/* Sistema VB ONG · experiencia de uso (2026-11-11): modo oscuro del panel, barra con avisos, buscador Ctrl+K,
+   pestañas agrupadas, mini gráficos, tablas ordenables y transiciones. Mismos colores de marca (negro + lima #A8E600). */
+
+/* ---------- modo oscuro del panel (el menú público ya es oscuro) ---------- */
+html[data-tema="oscuro"]{color-scheme:dark}
+html[data-tema="oscuro"] body:not(.pub){--bg:#0b0e0a;--s1:#12170f;--s2:#171d14;--s3:#1d2519;--bd:#253020;--bd2:#33412c;--tx:#e9f0e5;--mu:#9aa894;--ac:#A8E600;--ac-ink:#0B0E09;--ac-d:#93cc00;--ok:#6fdc8c;--warn:#f2b740;--bad:#ff7a6b;--info:#6cc6ff;--sh:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.35);background:#0b0e0a;color:var(--tx)}
+html[data-tema="oscuro"] body:not(.pub) a{color:#b9ec4a}
+html[data-tema="oscuro"] body:not(.pub) .side a{color:#c9d3c4}
+html[data-tema="oscuro"] body:not(.pub) .nav a[aria-current="page"]{color:var(--ink)}
+html[data-tema="oscuro"] body:not(.pub) .side{border-right:1px solid var(--bd)}
+html[data-tema="oscuro"] body:not(.pub) .btn{background:var(--s2);border-color:var(--bd2);color:var(--tx)}
+html[data-tema="oscuro"] body:not(.pub) .btn:hover{background:var(--s3)}
+html[data-tema="oscuro"] body:not(.pub) .btn.pri{background:var(--lima);border-color:var(--lima);color:var(--ink)}
+html[data-tema="oscuro"] body:not(.pub) .top{background:rgba(12,16,10,.9);border-bottom-color:var(--bd)}
+html[data-tema="oscuro"] body:not(.pub) .card,html[data-tema="oscuro"] body:not(.pub) .kpi,html[data-tema="oscuro"] body:not(.pub) .tile{background:var(--s1);border-color:var(--bd)}
+html[data-tema="oscuro"] body:not(.pub) .card.flat{background:var(--s2)}
+html[data-tema="oscuro"] body:not(.pub) .in,html[data-tema="oscuro"] body:not(.pub) select.in,html[data-tema="oscuro"] body:not(.pub) textarea.in,html[data-tema="oscuro"] body:not(.pub) .search input{background:#0e130c;border-color:var(--bd2);color:var(--tx)}
+html[data-tema="oscuro"] body:not(.pub) table th{background:#1a2216;color:#c8d3c2}
+html[data-tema="oscuro"] body:not(.pub) table td{border-color:var(--bd)}
+html[data-tema="oscuro"] body:not(.pub) .note{background:rgba(168,230,0,.08);border-color:rgba(168,230,0,.3);color:#d8f3a0}
+html[data-tema="oscuro"] body:not(.pub) .note.warn{background:rgba(242,183,64,.1);border-color:rgba(242,183,64,.4);color:#ffd88a}
+html[data-tema="oscuro"] body:not(.pub) .note.bad{background:rgba(255,122,107,.1);border-color:rgba(255,122,107,.4);color:#ffb3a9}
+html[data-tema="oscuro"] body:not(.pub) .note.ok{background:rgba(111,220,140,.1);border-color:rgba(111,220,140,.4);color:#b6f0c6}
+html[data-tema="oscuro"] body:not(.pub) .note.info{background:rgba(108,198,255,.08);border-color:rgba(108,198,255,.35);color:#bfe5ff}
+html[data-tema="oscuro"] body:not(.pub) .bars .b{background:var(--lima)}
+html[data-tema="oscuro"] body:not(.pub) .modal,html[data-tema="oscuro"] body:not(.pub) .modal-b,html[data-tema="oscuro"] body:not(.pub) [role=dialog]{background:var(--s1);color:var(--tx);border-color:var(--bd)}
+html[data-tema="oscuro"] body:not(.pub) .tabs button[aria-pressed="true"],html[data-tema="oscuro"] body:not(.pub) .tabs [aria-selected="true"]{background:var(--lima);color:var(--ink)}
+html[data-tema="oscuro"] body:not(.pub) .cal-d{background:var(--s2);border-color:var(--bd)}
+html[data-tema="oscuro"] body:not(.pub) output.in.ro{background:#141a11}
+html[data-tema="oscuro"] body:not(.pub) .pill{border-color:var(--bd2)}
+html[data-tema="oscuro"] body:not(.pub) .kio-v{background:var(--s2)}
+/* papel siempre blanco: tickets, comprobantes, carnets y QR */
+html[data-tema="oscuro"] body:not(.pub) .doc,html[data-tema="oscuro"] body:not(.pub) pre.tk{background:#fff;color:#111}
+
+/* ---------- barra superior: buscar, avisos y tema ---------- */
+.ux-k{gap:8px;white-space:nowrap}
+.ux-k kbd,.card kbd{font:600 11px/1 var(--f-body);padding:3px 6px;border-radius:6px;border:1px solid var(--bd2);color:var(--mu);background:var(--s3)}
+.ux-tema{gap:6px;white-space:nowrap}
+.ux-avisos{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ux-av{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 10px;border-radius:999px;border:1px solid var(--bd2);background:var(--s1);color:var(--tx);font-size:12.5px;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.ux-av b{display:inline-grid;place-items:center;min-width:20px;height:20px;border-radius:10px;font-size:12px;color:#fff}
+.ux-av.warn b{background:#c98a00}.ux-av.bad b{background:#d92d4b}
+.ux-av:hover,.ux-av:focus-visible{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.ux-av.pulso b{animation:uxPulso 1.6s ease-in-out infinite}
+@keyframes uxPulso{0%,100%{box-shadow:0 0 0 0 rgba(217,45,75,.55)}50%{box-shadow:0 0 0 6px rgba(217,45,75,0)}}
+@media (max-width:1480px){.ux-k span,.ux-k kbd,.ux-tema span{display:none}}
+@media (max-width:1180px){.ux-av span{display:none}}
+
+/* ---------- buscador universal ---------- */
+.ux-q{font-size:18px}
+.ux-res{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px;max-height:55vh;overflow:auto}
+.ux-res li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;cursor:pointer;border:1px solid transparent}
+.ux-res li span{display:flex;flex-direction:column;flex:1;min-width:0}
+.ux-res li small{color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ux-res li em{font-style:normal;font-size:12px;color:var(--mu);border:1px solid var(--bd2);border-radius:999px;padding:2px 8px}
+.ux-res li[aria-selected="true"],.ux-res li:hover{background:var(--lima2,#EEF9CC);border-color:#d6eb8a}
+html[data-tema="oscuro"] .ux-res li[aria-selected="true"],html[data-tema="oscuro"] .ux-res li:hover{background:rgba(168,230,0,.12);border-color:rgba(168,230,0,.35)}
+
+/* ---------- pestañas agrupadas (Gestión de caja) ---------- */
+.tabs.ux-grp{margin:0 0 14px;flex-wrap:wrap}
+.tabs.ux-grp a{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:999px;text-decoration:none;color:var(--tx);border:1px solid var(--bd2);background:var(--s1)}
+.tabs.ux-grp a[aria-selected="true"]{background:var(--lima);border-color:var(--lima);color:var(--ink);font-weight:600}
+
+/* ---------- mini gráficos ---------- */
+.kpi .ux-spark{display:block;width:100%;max-width:160px;height:34px;margin-top:8px}
+.ux-spark .l{fill:none;stroke:var(--verde,#1F8A70);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.ux-spark .a{fill:rgba(168,230,0,.18);stroke:none}
+.ux-spark circle{fill:var(--lima)}
+html[data-tema="oscuro"] .ux-spark .l{stroke:var(--lima)}
+
+/* ---------- tablas ordenables ---------- */
+th.ux-th{cursor:pointer;user-select:none;white-space:nowrap}
+th.ux-th::after{content:'↕';opacity:.3;margin-left:6px;font-size:.85em}
+th.ux-th[aria-sort="ascending"]::after{content:'↑';opacity:.9}
+th.ux-th[aria-sort="descending"]::after{content:'↓';opacity:.9}
+th.ux-th:hover::after{opacity:.7}
+
+/* ---------- transiciones y formularios ---------- */
+#main.ux-in>*{animation:uxIn .22s ease-out both}
+@keyframes uxIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#modalRoot [role=dialog],#modalRoot .modal{animation:uxPop .18s ease-out both}
+@keyframes uxPop{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}
+.card,.kpi{transition:box-shadow .2s ease,transform .2s ease}
+.grid .kpi:hover{transform:translateY(-2px)}
+.in[aria-invalid="true"]{border-color:var(--bad)!important;box-shadow:0 0 0 3px rgba(217,45,75,.15)}
+.err:not(:empty){display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(217,45,75,.08);border:1px solid rgba(217,45,75,.3)}
+.in:focus{border-color:var(--ac)}
+@media (prefers-reduced-motion:reduce){#main.ux-in>*,#modalRoot [role=dialog],#modalRoot .modal,.ux-av.pulso b{animation:none}.card,.kpi,.ux-av{transition:none}}
