@@ -30,13 +30,17 @@
   function cents(v) { return String(v / 100).replace('.', ','); }
   function unidadTxt(u) { return u === 'g' ? 'gramo' : u === 'frasco' ? 'frasco' : 'unidad'; }
 
-  /* ---------- campos de la donación (dispensación) ---------- */
+  /* ---------- campos de la donación (dispensación con uno o varios productos) ----------
+     Cada producto es un renglón [data-dsr="k"] (k = '' el primero, '_2', '_3'…) con su lote, cantidad, sugerido, 5+1 y
+     subtotal. Abajo, en «Donación voluntaria», un único total (name="aporte") = suma de los renglones; se puede cambiar. */
+  CM.aporteFilaHtml = function (k) {
+    k = k || '';
+    return '<div class="f f3 apc-fila">' + flr('Aporte sugerido por <span data-apc-un>unidad</span>', '<input class="in num" name="sug' + k + '" inputmode="decimal" placeholder="0" data-apc-in>') +
+      flr('Descuento 5+1 <small class="hint">(cada 5, 1 sin aporte)</small>', '<input class="in num" name="desc' + k + '" inputmode="decimal" placeholder="0" data-apc-in>') +
+      '<div class="fl"><span>Subtotal</span><output class="in ro" data-apc-sub aria-live="polite">$ 0,00</output></div></div><p class="hint" data-apc-rmsg aria-live="polite" style="margin:-2px 0 0"></p>';
+  };
   CM.aporteCalcHtml = function () {
-    return '<div class="apc" data-apc>' +
-      '<div class="f f2">' + flr('Aporte sugerido por <span data-apc-un>unidad</span>', '<input class="in num" name="sug" inputmode="decimal" placeholder="0" data-apc-in>') +
-      '<div class="fl"><span>Subtotal (se calcula solo)</span><output class="in ro" data-apc-sub aria-live="polite">$ 0,00</output></div></div>' +
-      '<div class="f f2">' + flr('Descuento 5+1 <small class="hint">(cada 5, 1 sin aporte)</small>', '<input class="in num" name="desc" inputmode="decimal" placeholder="0" data-apc-in>') +
-      fl('Total de la donación (se genera solo, se puede cambiar)', '<input class="in num" name="aporte" inputmode="decimal" placeholder="0" data-apc-in style="font-weight:700">') + '</div>' +
+    return '<div class="apc" data-apc>' + fl('Total de la donación (se genera solo, se puede cambiar)', '<input class="in num" name="aporte" inputmode="decimal" placeholder="0" data-apc-in style="font-weight:700;font-size:20px">') +
       '<p class="hint" data-apc-msg aria-live="polite" style="margin:-2px 0 0"></p></div>';
   };
   /* Recibido / cambio: para efectivo y para cualquier medio en el que el paciente entregue de más (el cambio sale en efectivo) */
@@ -49,33 +53,42 @@
 
   function num(f, n) { var i = f.elements[n]; if (!i || !String(i.value).trim()) return NaN; return CM.parseMonto(i.value); }
   function setVal(f, n, c) { var i = f.elements[n]; if (i) i.value = c > 0 ? cents(c) : (c === 0 ? '0' : ''); }
-  /* recalcula la dispensación: lote → sugerido; cantidad × sugerido → subtotal; 5+1 → descuento; total */
-  CM.apcRecalc = function (f, origen) {
+  function estado(f) { if (!f._apc) f._apc = { descMan: {}, totMan: false }; return f._apc; }
+  CM.dsFilas = function (f) { return Array.prototype.map.call(f.querySelectorAll('[data-dsr]'), function (r) { return r.getAttribute('data-dsr'); }); };
+  /* recalcula: lote → sugerido; cantidad × sugerido → subtotal; 5+1 → descuento; suma de renglones → total */
+  CM.apcRecalc = function (f, origen, kOrig) {
     var box = f && f.querySelector('[data-apc]'); if (!box) return;
-    var e = f.elements, l = e.lote ? CM.lote(e.lote.value) : null;
-    var un = box.querySelector('[data-apc-un]'); if (un) un.textContent = l ? unidadTxt(l.unidad) : 'unidad';
-    if (origen === 'lote') { var s0 = CM.sugLote(l); delete f.dataset.sugMan; setVal(f, 'sug', s0 || NaN); if (!s0 && e.sug) e.sug.value = ''; }
-    var sug = num(f, 'sug'), cant = CM.parseCant(e.cant ? e.cant.value : '');
-    if (isNaN(sug)) sug = 0; if (isNaN(cant)) cant = 0;
-    var c = CM.calcAporte(sug, cant);
-    box.querySelector('[data-apc-sub]').textContent = money(c.sub);
-    if (origen === 'desc') f.dataset.descMan = '1';
-    if (origen === 'aporte') f.dataset.totMan = '1';
-    if (!f.dataset.descMan) setVal(f, 'desc', c.sub > 0 ? c.desc : NaN);
-    var desc = num(f, 'desc'); if (isNaN(desc)) desc = 0;
-    var calc = Math.max(0, c.sub - desc);
-    if (!f.dataset.totMan) setVal(f, 'aporte', c.sub > 0 ? calc : NaN);
+    var st = estado(f), e = f.elements, total = 0, hay = false, libresTxt = [], sinSug = [];
+    if (origen === 'aporte') st.totMan = true;
+    CM.dsFilas(f).forEach(function (k) {
+      var row = f.querySelector('[data-dsr="' + k + '"]'), l = e['lote' + k] ? CM.lote(e['lote' + k].value) : null;
+      var un = row.querySelector('[data-apc-un]'); if (un) un.textContent = l ? unidadTxt(l.unidad) : 'unidad';
+      if (origen === 'lote' && kOrig === k) { var s0 = CM.sugLote(l); setVal(f, 'sug' + k, s0 || NaN); if (!s0 && e['sug' + k]) e['sug' + k].value = ''; delete st.descMan[k]; }
+      if (origen === 'desc' && kOrig === k) st.descMan[k] = true;
+      var sug = num(f, 'sug' + k), cant = CM.parseCant(e['cant' + k] ? e['cant' + k].value : '');
+      if (isNaN(sug)) sug = 0; if (isNaN(cant)) cant = 0;
+      var c = CM.calcAporte(sug, cant);
+      row.querySelector('[data-apc-sub]').textContent = money(c.sub);
+      if (!st.descMan[k]) setVal(f, 'desc' + k, c.sub > 0 ? c.desc : NaN);
+      var desc = num(f, 'desc' + k); if (isNaN(desc)) desc = 0;
+      if (c.sub > 0) { hay = true; total += Math.max(0, c.sub - desc); }
+      var rm = row.querySelector('[data-apc-rmsg]'), t = [];
+      if (c.libres > 0 && sug > 0) { var lt = c.libres + ' ' + (l ? unidadTxt(l.unidad) : 'unidad') + (c.libres > 1 ? 's' : '') + ' sin aporte (' + money(c.libres * sug) + ')'; t.push('5+1: ' + lt + '.'); libresTxt.push(lt); }
+      if (!sug && l) { t.push('Este lote no tiene aporte sugerido: se carga en Trazabilidad / Stock → «Aporte sugerido».'); sinSug.push(l.nombre); }
+      if (rm) rm.innerHTML = t.join(' ');
+    });
+    if (!st.totMan) setVal(f, 'aporte', hay ? total : NaN);
     var tot = num(f, 'aporte'), msg = box.querySelector('[data-apc-msg]');
     if (msg) {
-      var t = [];
-      if (c.libres > 0 && sug > 0) t.push('5+1: ' + c.libres + ' ' + (l ? unidadTxt(l.unidad) : 'unidad') + (c.libres > 1 ? 's' : '') + ' sin aporte (' + money(c.libres * sug) + ').');
-      if (c.sub > 0 && !isNaN(tot) && tot !== calc) t.push('El total difiere del sugerido (' + money(calc) + '): la donación es voluntaria. <button type="button" class="btn sm" data-act="apc-reset">Volver al sugerido</button>');
-      if (!sug && l) t.push('Este lote no tiene aporte sugerido: se carga en Trazabilidad / Stock → «Aporte sugerido».');
-      msg.innerHTML = t.join(' ');
+      var t2 = [], n = CM.dsFilas(f).length;
+      if (n > 1 && hay) t2.push('Sugerido por ' + n + ' productos: ' + money(total) + '.');
+      if (libresTxt.length) t2.push('5+1: ' + libresTxt.join(' · ') + '.');
+      if (hay && !isNaN(tot) && tot !== total) t2.push('El total difiere del sugerido (' + money(total) + '): la donación es voluntaria. <button type="button" class="btn sm" data-act="apc-reset">Volver al sugerido</button>');
+      msg.innerHTML = t2.join(' ');
     }
     CM.cambioRecalc(f);
   };
-  CM.acts['apc-reset'] = function (t) { var f = t.closest('form'); if (!f) return; delete f.dataset.descMan; delete f.dataset.totMan; CM.apcRecalc(f); };
+  CM.acts['apc-reset'] = function (t) { var f = t.closest('form'); if (!f) return; f._apc = { descMan: {}, totMan: false }; CM.apcRecalc(f); };
 
   function medioDe(f) { var m = f.elements.medio; return m ? m.value : 'efectivo'; }
   function totalDe(f) { var v = num(f, 'aporte'); if (isNaN(v)) v = num(f, 'importe'); return isNaN(v) ? 0 : v; }
@@ -116,12 +129,14 @@
   /* recálculo en vivo */
   document.addEventListener('input', function (ev) {
     var t = ev.target, f = t && t.form; if (!f) return;
-    if (f.querySelector('[data-apc]') && (t.name === 'sug' || t.name === 'cant' || t.name === 'desc' || t.name === 'aporte')) CM.apcRecalc(f, t.name === 'sug' ? 'sug' : t.name === 'desc' ? 'desc' : t.name === 'aporte' ? 'aporte' : '');
+    var mm = /^(sug|cant|desc)(_\d+)?$/.exec(t.name || '');
+    if (f.querySelector('[data-apc]') && (mm || t.name === 'aporte')) CM.apcRecalc(f, t.name === 'aporte' ? 'aporte' : mm[1] === 'desc' ? 'desc' : mm[1], mm ? mm[2] || '' : '');
     else if (f.querySelector('[data-cambio]') && (t.name === 'recibido' || t.name === 'importe' || /^mx_/.test(t.name))) CM.cambioRecalc(f);
   });
   document.addEventListener('change', function (ev) {
     var t = ev.target, f = t && t.form; if (!f) return;
-    if (t.name === 'lote' && f.querySelector('[data-apc]')) CM.apcRecalc(f, 'lote');
+    var ml = /^lote(_\d+)?$/.exec(t.name || '');
+    if (ml && f.querySelector('[data-apc]')) CM.apcRecalc(f, 'lote', ml[1] || '');
     if (t.name === 'medio' && f.querySelector('[data-cambio]')) CM.cambioRecalc(f);
   });
 
@@ -130,6 +145,7 @@
     if (!a) return '';
     var t = [];
     if (a.calc && a.calc.sug) t.push('Sugerido ' + money(a.calc.sug) + ' × ' + CM.fmtNum(a.calc.cant) + ' = ' + money(a.calc.sub) + (a.calc.desc ? ' − 5+1 ' + money(a.calc.desc) : ''));
+    (a.calcs || []).forEach(function (c) { t.push((c.nombre ? c.nombre + ': ' : '') + money(c.sug) + ' × ' + CM.fmtNum(c.cant) + ' = ' + money(c.sub) + (c.desc ? ' − 5+1 ' + money(c.desc) : '')); });
     if (a.cambio > 0) t.push('Recibido ' + money(a.recibido) + (a.cmMedio && a.cmMedio !== 'efectivo' ? ' por ' + (CM.MEDIOS[a.cmMedio] || a.cmMedio).toLowerCase() : ' en efectivo') + ' · cambio ' + money(a.cambio) + ' en efectivo');
     return t.join(' · ');
   };

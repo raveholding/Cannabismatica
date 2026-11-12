@@ -5,6 +5,12 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-12) · Dispensa con varios productos y REPROCANN desde los documentos
+- **Dispensa con 1 o varios productos** («Agregar otro producto», hasta 8): cada producto con su aporte sugerido, su 5+1 y su subtotal; una sola donación, un solo cambio y un solo comprobante. Stock controlado por lote; una etiqueta por producto.
+- **Ficha del paciente:** «Carpeta del legajo» y «Documentos y escaneos» quedan al final.
+- **REPROCANN desde los documentos del legajo:** REPROCANN → «Completar desde los documentos» (vista previa antes de aplicar). La fecha sale del nombre del documento («activo 2029/03» → 31/03/2029; sólo el año → 31/12); sin fecha queda «Válido · falta fecha». Todo queda «a verificar» hasta que alguien guarde la fecha real; auditoría e historial por paciente.
+- **Acceso a la carpeta** en la tarjeta y el formulario del REPROCANN: documentos con «Abrir», «Abrir carpeta del legajo», «Usar esta fecha». Al subir un REPROCANN se pide el vencimiento.
+
 ## Novedades (2026-11-11) · Etapas 2 a 4: cultivo por genética, RR. HH. y diseño
 - **Cultivo** (`js/m-cultivo2.js`): varias genéticas por sala con trazabilidad propia: «Cosecha → lote» por genética (también en partes), «Genética de un lote» en Trazabilidad / Stock, la dispensación guarda `gen`/`genVar`, «Ver trazabilidad» (sala → genética → lotes → dispensaciones → legajo, CSV). Los registros diarios pueden indicar la genética.
 - **RR. HH.** (`js/m-rrhh.js`): permiso nuevo `rrhh`; legajos con jornada, contacto y vacaciones (staff) y datos privados aparte (colección `rhpriv`: CUIL, remuneración, documentos con vencimiento); fichaje con PIN en **modo kiosco** (`#/kiosco`, hash + bloqueo), QR con cámara, NFC real vinculado por número, celular con geocerca (guarda sólo la distancia); carnets firmados con secreto de la fundación; calendario; **pedidos** (colección `rhsol`) con 1 o 2 niveles de aprobación y saldo de vacaciones; **liquidación interna** (colección `rhliq`, versiones selladas) con horas extra, tardanzas, ausencias, adelantos y deducciones configurables [VERIFICAR con el contador]; **Mi portal**.

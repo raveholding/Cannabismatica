@@ -86,3 +86,15 @@ th.ux-th:hover::after{opacity:.7}
 .err:not(:empty){display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(217,45,75,.08);border:1px solid rgba(217,45,75,.3)}
 .in:focus{border-color:var(--ac)}
 @media (prefers-reduced-motion:reduce){#main.ux-in>*,#modalRoot [role=dialog],#modalRoot .modal,.ux-av.pulso b{animation:none}.card,.kpi,.ux-av{transition:none}}
+
+/* dispensa con varios productos */
+.ds-row{display:grid;gap:8px;padding:12px;border:1px solid var(--bd);border-radius:14px;background:var(--s2);margin-bottom:10px}
+.ds-row-h b{font-size:13px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+form:not(.ds-varios) .ds-row{padding:0;border:0;background:none}
+form:not(.ds-varios) .ds-row-h{display:none}
+.f.f3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.f.f3{grid-template-columns:1fr 1fr}.f.f3>.fl:last-child{grid-column:1/-1}}
+/* REPROCANN: documentos del legajo (2026-11-12) */
+.rep-docs .rep-dl{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.rep-docs .rep-dl li{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between;padding:6px 8px;border:1px solid var(--line,#e5e5e5);border-radius:8px}
+.rep-docs .rep-dl li span{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
