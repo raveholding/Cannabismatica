@@ -63,8 +63,10 @@ with sync_playwright() as pw:
     ev("window.__ing=%s" % json.dumps(ing2)); p.click('[data-act=gf-leer]'); p.wait_for_timeout(600)
     chk([ev("Object.keys(CM.db.pacientes).length"), ev("CM.db.menu.hcs.length")] == [n1, h1], 'la misma respuesta con fecha en número de serie (.xlsx) no se duplica')
     n2 = ev("Object.keys(CM.db.pacientes).length"); ing3 = json.loads(json.dumps(ing2)); ing3.append(['46338.7', 'X', 'Serie Ficticia', '35713', '99100077', 'c', '4400', '3875000077', 's@example.com', '', '', '', '', ''])
+    ing3[-1][6] = '4400.0'
     ev("window.__ing=%s" % json.dumps(ing3)); p.click('[data-act=gf-leer]'); p.wait_for_timeout(600)
     chk(ev("(CM.db.pacientes['99100077']||{}).nac") == '1997-10-10' and ev("Object.keys(CM.db.pacientes).length") == n2 + 1, 'fechas en número de serie: nacimiento bien leído')
+    chk(ev("(CM.db.pacientes['99100077']||{}).tel") == '3875000077' and ev("CM.db.pacientes['991000777']") is None and ev("CM.db.pacientes['99100077'].cp") == '4400', 'DNI y teléfono en notación científica (.xlsx): bien leídos, sin dígitos de más')
     # aprobar
     p.locator('tr', has_text='Francisco Ficticio').locator('[data-act=hc-ok]').click(); p.wait_for_timeout(300)
     chk(not ev("CM.db.pacientes['99100001'].revisar"), 'se aprueba como cualquier solicitud')

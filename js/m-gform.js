@@ -112,10 +112,20 @@
     });
   }
   /* procesa la respuesta del servidor (exportado para las pruebas) */
+  /* el .xlsx guarda los números largos en notación científica («4.0934232E7» = DNI 40934232; «3.875874278E9» = teléfono):
+     se pasan a dígitos ANTES de leer, si no el DNI salía con un dígito de más */
+  function sinExp(c) {
+    var t = String(c == null ? '' : c).trim();
+    if (/^-?\d+\.0+$/.test(t)) return t.replace(/\.0+$/, '');   /* «4400.0» → 4400 (código postal, DNI…) */
+    if (!/^-?\d+(?:\.\d+)?[eE][+-]?\d+$/.test(t)) return c;
+    var n = Number(t); if (!isFinite(n)) return c;
+    return Number.isInteger(n) ? n.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 0 }) : n.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 10 });
+  }
+  CM.gformSinExp = sinExp;
   CM.gformProcesar = function (r, desde) {
     var res = { nuevos: [], exist: 0, seg: 0, sinFicha: [] };
     (r.hojas || []).forEach(function (h) {
-      var filas = h.filas || [], t = tipoHoja(filas[0] || []);
+      var filas = (h.filas || []).map(function (f) { return (f || []).map(sinExp); }), t = tipoHoja(filas[0] || []);
       if (t === 'ing') ingreso(h.titulo, filas, desde, res); else if (t === 'seg') seguimiento(h.titulo, filas, desde, res);
     });
     return res;
