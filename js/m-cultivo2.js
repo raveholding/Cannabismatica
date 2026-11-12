@@ -97,8 +97,8 @@
   /* ---------- genética de un lote existente ---------- */
   function opcionesGen(sel) {
     var out = '';
-    (CM.db.cultivos || []).slice().sort(function (a, b) { return String(b.inicio).localeCompare(String(a.inicio)); }).forEach(function (c) {
-      var gs = (c.geneticas || []).filter(function (x) { return x.estado !== 'Descartada'; }); if (!gs.length) return;
+    CM.ciclosVivos().slice().sort(function (a, b) { return String(b.inicio).localeCompare(String(a.inicio)); }).forEach(function (c) {
+      var gs = (c.geneticas || []).filter(function (x) { return x.estado !== 'Descartada' && !x.borrada; }); if (!gs.length) return;
       out += '<optgroup label="' + esc(c.nombre + ' · ' + c.id) + '">' + gs.map(function (x) { return opt(c.id + '|' + x.id, x.variedad + ' · ' + c.nombre, sel === c.id + '|' + x.id); }).join('') + '</optgroup>';
     });
     return out;
@@ -110,7 +110,7 @@
     CM.modal.open({
       title: 'Genética de un lote',
       body: '<form id="fLG" data-form="lote-gen" class="f" autocomplete="off" novalidate>' +
-        fl('Lote *', '<select class="in" name="lote"><option value="">Elegí un lote…</option>' + CM.db.lotes.map(function (l) { return opt(l.id, l.nombre + ' · ' + l.id + (l.genVar ? ' · ' + l.genVar : ' · sin genética')); }).join('') + '</select>') +
+        fl('Lote *', '<select class="in" name="lote"><option value="">Elegí un lote…</option>' + CM.lotesVivos().map(function (l) { return opt(l.id, l.nombre + ' · ' + l.id + (l.genVar ? ' · ' + l.genVar : ' · sin genética')); }).join('') + '</select>') +
         fl('Genética (sala · variedad) *', '<select class="in" name="gen"><option value="">Elegí la genética…</option>' + gs + '</select>') +
         fl('Motivo (obligatorio si el lote ya tenía genética)', '<input class="in" name="motivo" maxlength="120">') +
         '<p class="hint" style="margin:0">Asigna el ciclo y la genética de origen a las <b>próximas</b> dispensaciones del lote. Las ya registradas conservan su origen.</p><p class="err" role="alert" data-err></p></form>',

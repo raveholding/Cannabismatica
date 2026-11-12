@@ -22,3 +22,23 @@ self.addEventListener('fetch', function (e) {
     });
   }));
 });
+
+/* Portero digital (2026-11-12): botones de la notificación del timbre.
+   «Ya voy» responde al portero (y a la visita del timbre por QR) sin abrir nada; «Abrir portero» abre el portero;
+   tocar la notificación lleva al sistema. Sólo publica en los temas que el propio sistema puso en la notificación. */
+self.addEventListener('notificationclick', function (e) {
+  var n = e.notification, x = n.data || {}; n.close();
+  if (!x.id) return;
+  if (e.action === 'voy' && x.reply) {
+    var post = function (u, b) { return /^https:\/\/ntfy\.sh\/[\w%-]+$/.test(u) ? fetch(u, { method: 'POST', body: JSON.stringify(b) }).then(function (r) { return r.ok; }, function () { return false; }) : Promise.resolve(false); };
+    e.waitUntil(Promise.all([post(x.reply, { type: 'reply', id: x.id, code: 'voy' }), x.replyQr ? post(x.replyQr, { type: 'reply', id: x.id, code: 'voy', text: '¡Ya vamos! Aguardá un momento.' }) : null]).then(function () {
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) { cs.forEach(function (c) { c.postMessage({ portero: { respondida: true, id: x.id, code: 'voy' } }); }); });
+    }));
+    return;
+  }
+  if (e.action === 'abrir' && /^https:\/\//.test(x.url || '')) { e.waitUntil(self.clients.openWindow(x.url)); return; }
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) {
+    var c = cs.filter(function (w) { return w.url.indexOf(self.registration.scope) === 0; })[0];
+    return c ? c.focus() : self.clients.openWindow(self.registration.scope);
+  }));
+});

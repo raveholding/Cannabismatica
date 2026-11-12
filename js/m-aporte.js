@@ -154,7 +154,7 @@
   CM.acts['lote-sug'] = function (t) {
     if (!CM.need('trazabilidad', 'edit')) return;
     var sel = t && t.getAttribute('data-id') || '';
-    var ls = CM.db.lotes.slice().sort(function (a, b) { return String(b.ingreso || '').localeCompare(String(a.ingreso || '')); });
+    var ls = CM.lotesVivos().slice().sort(function (a, b) { return String(b.ingreso || '').localeCompare(String(a.ingreso || '')); });
     CM.modal.open({
       title: 'Aporte sugerido por unidad',
       body: '<form id="fLS" data-form="lote-sug" class="f" autocomplete="off" novalidate>' +

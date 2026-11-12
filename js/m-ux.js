@@ -90,7 +90,7 @@
       var p = db.pacientes[k], doc = CM.docCorto ? CM.docCorto(p) : '', s = Math.max(CM.uxPuntaje(q, p.nombre), CM.uxPuntaje(q, p.leg || ''), q.replace(/\D/g, '').length >= 4 && String(doc).replace(/\D/g, '').indexOf(q.replace(/\D/g, '')) >= 0 ? 85 : 0);
       if (s) out.push({ s: s + 2, t: 'Paciente', n: p.nombre, d: (p.leg || '') + (doc ? ' · ' + doc : ''), h: '#/paciente/' + p.dni, i: 'users' });
     });
-    if (!CM.can || CM.can('trazabilidad', 'ver')) (db.lotes || []).forEach(function (l) { var s = Math.max(CM.uxPuntaje(q, l.nombre), CM.uxPuntaje(q, l.id), CM.uxPuntaje(q, l.genVar || '')); if (s) out.push({ s: s, t: 'Lote', n: l.nombre, d: l.id + ' · quedan ' + CM.fmtNum(CM.stockLote(l.id)) + ' ' + l.unidad, h: '#/trazabilidad', i: 'box' }); });
+    if (!CM.can || CM.can('trazabilidad', 'ver')) CM.lotesVivos().forEach(function (l) { var s = Math.max(CM.uxPuntaje(q, l.nombre), CM.uxPuntaje(q, l.id), CM.uxPuntaje(q, l.genVar || '')); if (s) out.push({ s: s, t: 'Lote', n: l.nombre, d: l.id + ' · quedan ' + CM.fmtNum(CM.stockLote(l.id)) + ' ' + l.unidad, h: '#/trazabilidad', i: 'box' }); });
     if (!CM.can || CM.can('personal', 'ver')) (db.staff || []).forEach(function (e) { var s = CM.uxPuntaje(q, e.nombre); if (s) out.push({ s: s, t: 'Personal', n: e.nombre, d: e.cargo || '', fn: function () { CM.per.tab = 'equipo'; g.location.hash = '#/personal'; setTimeout(function () { CM.acts['rh-legajo'] && CM.acts['rh-legajo']({ getAttribute: function () { return e.id; } }); }, 150); }, i: 'clock' }); });
     CM.NAV.forEach(function (n) { if (n[0] === '-' || !CM.visible(n)) return; var s = CM.uxPuntaje(q, n[1]); if (s) out.push({ s: s - 1, t: 'Pantalla', n: n[1], d: '', h: '#/' + n[0], i: n[2] }); });
     GRUPO_CAJA.forEach(function (x) { if (CM.can && !CM.can(x[2], 'ver')) return; var s = CM.uxPuntaje(q, x[1]); if (s) out.push({ s: s - 1, t: 'Pantalla', n: x[1], d: 'Gestión de caja', h: '#/' + x[0], i: 'cash' }); });
@@ -135,9 +135,9 @@
       if (prox) out.push({ k: 'repp', c: 'warn', n: prox, t: 'REPROCANN por vencer', h: '#/reprocann' });
     }
     if (can('trazabilidad') && CM.stockLote) {
-      var bajo = 0, ago = 0; (db.lotes || []).forEach(function (l) { var s = CM.stockLote(l.id), ing = (db.movs || []).some(function (m) { return m.lote === l.id && m.tipo === 'ingreso'; }); if (!ing) return; if (s <= 0) ago++; else if (s <= (l.min || 0)) bajo++; });
+      var bajo = 0, ago = 0; CM.lotesVivos().forEach(function (l) { var s = CM.stockLote(l.id), ing = (db.movs || []).some(function (m) { return m.lote === l.id && m.tipo === 'ingreso'; }); if (!ing) return; if (s <= 0) ago++; else if (s <= (l.min || 0)) bajo++; });
       if (bajo) out.push({ k: 'stock', c: 'warn', n: bajo, t: 'Stock bajo', h: '#/trazabilidad' });
-      if (ago && (db.lotes || []).length - ago < 3) out.push({ k: 'agot', c: 'bad', n: ago, t: 'Lote' + (ago > 1 ? 's' : '') + ' agotado' + (ago > 1 ? 's' : ''), h: '#/trazabilidad' });
+      if (ago && CM.lotesVivos().length - ago < 3) out.push({ k: 'agot', c: 'bad', n: ago, t: 'Lote' + (ago > 1 ? 's' : '') + ' agotado' + (ago > 1 ? 's' : ''), h: '#/trazabilidad' });
     }
     if (can('pacientes') && CM.solicitudesPendientes) { var s = CM.solicitudesPendientes(); if (s) out.push({ k: 'sol', c: 'bad', n: s, t: 'Solicitud' + (s > 1 ? 'es' : '') + ' del menú', h: '#/solicitudes', pulso: true }); }
     if (CM.can && CM.can('rrhh', 'edit')) { var r = (db.rhsol || []).filter(function (p) { return /^pendiente/.test(p.estado); }).length; if (r) out.push({ k: 'rh', c: 'warn', n: r, t: 'Pedido' + (r > 1 ? 's' : '') + ' de RR. HH.', fn: 'pedidos' }); }

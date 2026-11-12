@@ -42,6 +42,7 @@
     }
     return 'CU-' + Date.now().toString(36).toUpperCase();
   }
+  CM.ciclosVivos = function () { return (CM.db.cultivos || []).filter(function (c) { return !c.baja; }); };
   CM.cultivo = function (id) { return (CM.db.cultivos || []).filter(function (c) { return c.id === id; })[0] || null; };
   CM.cultivoRegs = function (id, conAnuladas) {
     return (CM.db.cultReg || []).filter(function (r) { return r.cu === id && (conAnuladas || !r.anulada); }).sort(function (a, b) { return a.n - b.n; });
@@ -86,9 +87,9 @@
     return '';
   }
   function cultivoHtml() {
-    var db = CM.db, cs = db.cultivos.slice().sort(function (a, b) { return b.inicio.localeCompare(a.inicio) || b.id.localeCompare(a.id); });
+    var db = CM.db, cs = CM.ciclosVivos().slice().sort(function (a, b) { return b.inicio.localeCompare(a.inicio) || b.id.localeCompare(a.id); });
     var puedeNuevo = CM.can('cultivo', 'oper');
-    if (!CM.cu.sel || !CM.cultivo(CM.cu.sel)) CM.cu.sel = cs.length ? cs[0].id : '';
+    if (!CM.cu.sel || !CM.cultivo(CM.cu.sel) || CM.cultivo(CM.cu.sel).baja) CM.cu.sel = cs.length ? cs[0].id : '';
     var sel = CM.cultivo(CM.cu.sel);
     var lista = cs.length ? '<div class="tw"><table><thead><tr><th>Ciclo</th><th>Lote / sala</th><th>Inicio</th><th class="n">Registros</th><th>Estado</th><th>Drive</th><th></th></tr></thead><tbody>' + cs.map(function (c) {
       var n = CM.cultivoRegs(c.id).length, v = (c.drive && c.drive.versiones || []).length;
@@ -97,7 +98,7 @@
     }).join('') + '</tbody></table></div>' : '<div class="empty">Todavía no hay ciclos de cultivo. Creá el primero con “Nuevo ciclo”.</div>';
     return '<div class="page-h"><div><h1>Planilla de seguimiento de cultivo</h1><p>Un ciclo por lote o sala. Cada día se carga un registro con riego, humedad, temperatura y runoff. Los registros no se borran: se corrigen con motivo o se anulan, y todo queda en la auditoría.</p></div>' +
       '<div class="row">' + (puedeNuevo ? '<button class="btn pri" data-act="cu-nuevo">' + CM.icon('plus') + 'Nuevo ciclo</button>' : '') + '</div></div>' +
-      '<section class="card"><h2>Ciclos de cultivo</h2>' + lista + '</section>' + (sel ? planillaHtml(sel) : '');
+      '<section class="card"><h2>Ciclos de cultivo</h2>' + lista + (CM.ciclosBajasHtml ? CM.ciclosBajasHtml() : '') + '</section>' + (sel ? planillaHtml(sel) : '');
   }
   function planillaHtml(c) {
     var regs = CM.cultivoRegs(c.id, true), activos = regs.filter(function (r) { return !r.anulada; }), ult = activos[activos.length - 1];
@@ -119,6 +120,8 @@
       (c.estado === 'activo' && CM.can('cultivo', 'oper') ? '<button class="btn sm" data-act="cu-meta" data-id="' + esc(c.id) + '">' + CM.icon('edit') + 'Editar cantidad y variedad</button>' : '') + '</p>' +
       ((c.metaHist || []).length ? '<details><summary class="hint">Historial de cambios (' + c.metaHist.length + ')</summary><ul class="tl">' + c.metaHist.slice().reverse().map(function (h) { return '<li>' + esc(CM.fmtFH(h.ts)) + ' · ' + esc(h.user) + ' · ' + esc(nf(h.antes.cantidad)) + ' ' + esc(h.antes.unidad || '') + ' / ' + esc(h.antes.variedad || '—') + ' → ' + esc(nf(h.despues.cantidad)) + ' ' + esc(h.despues.unidad || '') + ' / ' + esc(h.despues.variedad || '—') + ' · ' + esc(h.motivo) + '</li>'; }).join('') + '</ul></details>' : '') + '</div><div class="row">' +
       (abierto && CM.can('cultivo', 'oper') ? '<button class="btn pri" data-act="cr-nuevo" data-id="' + esc(c.id) + '">' + CM.icon('plus') + 'Agregar registro</button>' : '') +
+      (CM.can('cultivo', 'edit') ? '<button class="btn" data-act="cu-editar" data-id="' + esc(c.id) + '">' + CM.icon('edit') + 'Editar ciclo</button>' : '') +
+      (CM.can('cultivo', 'admin') ? '<button class="btn bad" data-act="cu-borrar" data-id="' + esc(c.id) + '">' + CM.icon('trash') + 'Borrar ciclo</button>' : '') +
       '<button class="btn" data-act="cu-print" data-id="' + esc(c.id) + '">' + CM.icon('print') + 'Imprimir planilla</button><button class="btn" data-act="cu-csv" data-id="' + esc(c.id) + '">' + CM.icon('dl') + 'Exportar CSV</button>' +
       (CM.can('cultivo', 'admin') ? (abierto ? '<button class="btn" data-act="cu-cerrar" data-id="' + esc(c.id) + '">' + CM.icon('lock') + 'Cerrar ciclo</button>' : '<button class="btn" data-act="cu-reabrir" data-id="' + esc(c.id) + '">' + CM.icon('undo') + 'Reabrir</button>') : '') + '</div></div>' +
       geneticasHtml(c) + (abierto ? '' : '<div class="note info" style="margin-top:10px">Este ciclo está cerrado: no admite registros ni correcciones. Un administrador puede reabrirlo (queda auditado).</div>') + st + tabla + drive + '</section>';
@@ -126,17 +129,17 @@
   /* ---------- genéticas del espacio (sala / carpa): variedad, tipo, plantas, estado y observaciones ----------
      Cada cambio guarda lo anterior, quién y cuándo; una genética no se borra: se marca «Descartada» o «Cosechada». */
   function geneticasHtml(c) {
-    var gs = c.geneticas || [], puede = c.estado === 'activo' && CM.can('cultivo', 'oper');
+    var gsTodas = c.geneticas || [], gs = gsTodas.filter(function (x) { return !x.borrada; }), puede = c.estado === 'activo' && CM.can('cultivo', 'oper');
     var vivas = gs.filter(function (x) { return ['Cosechada', 'Descartada'].indexOf(x.estado) < 0; });
     var tot = vivas.reduce(function (a, x) { return a + (x.plantas || 0); }, 0);
     return '<div class="cu-gen"><div class="row sp" style="margin-top:10px"><h3 style="margin:0">Genéticas en este espacio</h3>' + (puede ? '<button class="btn sm" data-act="gen-nueva" data-id="' + esc(c.id) + '">' + CM.icon('plus') + 'Agregar genética</button>' : '') + '</div>' +
       (gs.length ? '<div class="tw"><table><thead><tr><th>Variedad</th><th>Tipo</th><th class="n">Plantas</th><th>Estado</th><th>Observaciones</th><th>Lotes y dispensado</th><th></th></tr></thead><tbody>' + gs.map(function (x) {
         var cls = { 'Sana': 'p-ok', 'En observación': 'p-warn', 'Con plaga o enfermedad': 'p-bad', 'Cosechada': 'p-info', 'Descartada': 'p-mu' }[x.estado] || '';
         return '<tr><td><b>' + esc(x.variedad) + '</b></td><td>' + esc(x.tipo || '—') + '</td><td class="n">' + (x.plantas == null ? '—' : x.plantas) + '</td><td><span class="pill ' + cls + '">' + esc(x.estado || '—') + '</span></td><td>' + esc(x.obs || '') + ((x.hist || []).length ? '<br><small class="hint">Modificada ' + x.hist.length + ' vez/veces</small>' : '') + '</td><td>' + (CM.trazGenCelda ? CM.trazGenCelda(c, x) : '') + '</td><td><div class="row">' +
-          (puede ? '<button class="btn sm" data-act="gen-editar" data-id="' + esc(c.id) + '" data-g="' + esc(x.id) + '">' + CM.icon('edit') + 'Editar</button>' : '') +
+          (puede ? '<button class="btn sm" data-act="gen-editar" data-id="' + esc(c.id) + '" data-g="' + esc(x.id) + '">' + CM.icon('edit') + 'Editar</button><button class="btn sm bad" data-act="gen-borrar" data-id="' + esc(c.id) + '" data-g="' + esc(x.id) + '" aria-label="Borrar la genética ' + esc(x.variedad) + '">' + CM.icon('trash') + 'Borrar</button>' : '') +
           (x.estado !== 'Descartada' && CM.can('trazabilidad', 'edit') && CM.acts['gen-cosecha'] ? '<button class="btn sm" data-act="gen-cosecha" data-id="' + esc(c.id) + '" data-g="' + esc(x.id) + '">' + CM.icon('box') + 'Cosecha → lote</button>' : '') + '</div></td></tr>';
       }).join('') + '</tbody></table></div><p class="hint" style="margin:6px 0 0">Total de plantas activas: <b>' + tot + '</b>' + (vivas.length !== gs.length ? ' (sin contar cosechadas ni descartadas)' : '') + '.</p>' :
-        '<p class="hint" style="margin:6px 0 0">Todavía no hay genéticas cargadas en este espacio.' + (puede ? ' Agregá cada variedad con su cantidad de plantas.' : '') + '</p>') + '</div>';
+        '<p class="hint" style="margin:6px 0 0">Todavía no hay genéticas cargadas en este espacio.' + (puede ? ' Agregá cada variedad con su cantidad de plantas.' : '') + '</p>') + (CM.genBorradasHtml ? CM.genBorradasHtml(c, gsTodas.filter(function (x) { return x.borrada; }), puede) : '') + '</div>';
   }
   function genForm(c, x) {
     x = x || { variedad: '', tipo: '', plantas: null, estado: 'Sana', obs: '' };
@@ -176,7 +179,7 @@
       Object.keys(d).forEach(function (k) { x[k] = d[k]; });
       CM.audit('Cultivo: genética modificada', c.id + ' · ' + vari + ' · ' + d.plantas + ' plantas · ' + d.estado + ' · ' + mot);
     } else {
-      if (c.geneticas.some(function (y) { return CM.norm(y.variedad) === CM.norm(vari) && ['Cosechada', 'Descartada'].indexOf(y.estado) < 0; })) return fail(f, 'vari', 'Esa variedad ya está cargada en este espacio: editala.');
+      if (c.geneticas.some(function (y) { return !y.borrada && CM.norm(y.variedad) === CM.norm(vari) && ['Cosechada', 'Descartada'].indexOf(y.estado) < 0; })) return fail(f, 'vari', 'Esa variedad ya está cargada en este espacio: editala.');
       var nx = { id: 'G' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: new Date().toISOString(), user: CM.db.cfg.operador, hist: [] };
       Object.keys(d).forEach(function (k) { nx[k] = d[k]; });
       c.geneticas.push(nx);

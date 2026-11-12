@@ -184,7 +184,7 @@
       if (!p.historiaCompleta) al.push({ t: 'warn', h: '<a href="#/paciente/' + esc(p.dni) + '">' + esc(nombreCorto(p.nombre)) + '</a>: historia clínica pendiente de completar.' });
       if (CM.seguimientoPendiente(p)) al.push({ t: 'info', h: '<a href="#/paciente/' + esc(p.dni) + '">' + esc(nombreCorto(p.nombre)) + '</a>: seguimiento médico mensual pendiente.' });
     });
-    db.lotes.forEach(function (l) {
+    CM.lotesVivos().forEach(function (l) {
       var s = CM.stockLote(l.id);
       if (s <= l.min) al.push({ t: s <= 0 ? 'bad' : 'warn', h: '<a href="#/trazabilidad">Stock bajo</a>: ' + esc(l.nombre) + ' (' + esc(l.id) + ') · quedan ' + esc(cantTxt(s, l.unidad)) + '.' });
     });
@@ -486,10 +486,10 @@
   }
   VIEWS.trazabilidad = function () {
     var db = CM.db, h = CM.hoy();
-    var stock = '<div class="tw"><table><thead><tr><th>Lote</th><th>Preparado</th><th>Tipo</th><th>Quimiotipo</th><th>Ciclo de origen</th><th class="n">Aporte sugerido</th><th class="n">Ingresó</th><th class="n">Disponible</th><th>Estado</th></tr></thead><tbody>' + db.lotes.map(function (l) {
+    var stock = '<div class="tw"><table><thead><tr><th>Lote</th><th>Preparado</th><th>Tipo</th><th>Quimiotipo</th><th>Ciclo de origen</th><th class="n">Aporte sugerido</th><th class="n">Ingresó</th><th class="n">Disponible</th><th>Estado</th>' + (CM.can('trazabilidad', 'edit') ? '<th></th>' : '') + '</tr></thead><tbody>' + CM.lotesVivos().map(function (l) {
       var s = CM.stockLote(l.id), ing = db.movs.filter(function (m) { return m.lote === l.id && m.tipo === 'ingreso'; }).reduce(function (a, m) { return a + m.cant; }, 0);
-      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td>' + (l.cu ? esc(cicloTxt(l.cu)) + (l.genVar ? '<br><small class="hint">Genética: ' + esc(l.genVar) + '</small>' : '') : '<span class="hint">Sin ciclo</span>') + '</td><td class="n">' + (CM.sugLote(l) ? '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '" aria-label="Cambiar aporte sugerido de ' + esc(l.id) + '">' + esc(CM.fmtMoney(CM.sugLote(l))) + '</button>' : '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '">Cargar</button>') + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td></tr>';
-    }).join('') + '</tbody></table></div>';
+      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td>' + (l.cu ? esc(cicloTxt(l.cu)) + (l.genVar ? '<br><small class="hint">Genética: ' + esc(l.genVar) + '</small>' : '') : '<span class="hint">Sin ciclo</span>') + '</td><td class="n">' + (CM.sugLote(l) ? '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '" aria-label="Cambiar aporte sugerido de ' + esc(l.id) + '">' + esc(CM.fmtMoney(CM.sugLote(l))) + '</button>' : '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '">Cargar</button>') + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td>' + (CM.can('trazabilidad', 'edit') ? '<td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-act="lote-editar" data-id="' + esc(l.id) + '" aria-label="Editar el lote ' + esc(l.id) + '">' + CM.icon('edit') + 'Editar</button><button class="btn sm bad" data-act="lote-borrar" data-id="' + esc(l.id) + '" aria-label="Borrar el lote ' + esc(l.id) + '">' + CM.icon('trash') + '</button></div></td>' : '') + '</tr>';
+    }).join('') + '</tbody></table></div>' + (CM.lotesBajasHtml ? CM.lotesBajasHtml() : '');
     var movs = db.movs.slice().sort(function (a, b) { return b.ts.localeCompare(a.ts) || b.id.localeCompare(a.id); }).slice(0, 25);
     var mt = '<div class="tw"><table><thead><tr><th>Fecha</th><th>Lote</th><th>Movimiento</th><th class="n">Cantidad</th><th>Referencia / motivo</th><th>Usuario</th></tr></thead><tbody>' + movs.map(function (m) {
       var l = CM.lote(m.lote);
@@ -797,7 +797,7 @@
   function cicloTxt(cu) { var c = CM.cultivo ? CM.cultivo(cu) : null; return c ? c.nombre + ' · ' + c.id : cu; }
   CM.cicloTxt = cicloTxt;
   function gruposLotes() {
-    var lotes = CM.db.lotes, grupos = '';
+    var lotes = CM.lotesVivos(), grupos = '';
     Object.keys(CM.PRODUCTOS).forEach(function (k) {
       var ls = lotes.filter(function (l) { return l.prod === k; });
       if (!ls.length) return;
@@ -1130,7 +1130,7 @@
     });
   };
   function cicloSelect(v) {
-    var cs = (CM.db.cultivos || []).slice().sort(function (a, b) { return (a.estado !== 'activo') - (b.estado !== 'activo') || String(b.inicio).localeCompare(String(a.inicio)); });
+    var cs = (CM.ciclosVivos ? CM.ciclosVivos() : CM.db.cultivos || []).slice().sort(function (a, b) { return (a.estado !== 'activo') - (b.estado !== 'activo') || String(b.inicio).localeCompare(String(a.inicio)); });
     if (!cs.length) return '<p class="hint">Todavía no hay ciclos de cultivo: el lote queda sin origen. Se puede asignar después.</p>';
     return fl('Ciclo de cultivo de origen', '<select class="in" name="cu"><option value="">Sin ciclo (se asigna después)</option>' + cs.map(function (c) { return opt(c.id, c.nombre + ' · ' + c.id + (c.estado !== 'activo' ? ' (cerrado)' : ''), c.id === v); }).join('') + '</select>') +
       '<p class="hint" style="margin:-4px 0 0">Las dispensaciones de este lote toman este origen solas.</p>';
@@ -1140,7 +1140,7 @@
     CM.modal.open({
       title: 'Ciclo de cultivo de un lote',
       body: '<form id="fLC" data-form="lote-ciclo" class="f" autocomplete="off" novalidate>' +
-        fl('Lote *', '<select class="in" name="lote"><option value="">Elegí un lote…</option>' + CM.db.lotes.map(function (l) { return opt(l.id, l.nombre + ' · ' + l.id + (l.cu ? ' · ' + cicloTxt(l.cu) : ' · sin ciclo')); }).join('') + '</select>') +
+        fl('Lote *', '<select class="in" name="lote"><option value="">Elegí un lote…</option>' + CM.lotesVivos().map(function (l) { return opt(l.id, l.nombre + ' · ' + l.id + (l.cu ? ' · ' + cicloTxt(l.cu) : ' · sin ciclo')); }).join('') + '</select>') +
         cicloSelect('') + fl('Motivo (obligatorio si el lote ya tenía ciclo)', '<input class="in" name="motivo" maxlength="120">') +
         '<p class="hint" style="margin:0">Cambia el origen de las <b>próximas</b> dispensaciones del lote. Las ya registradas conservan el origen con el que se hicieron.</p><p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fLC">Guardar</button>'
@@ -1179,7 +1179,7 @@
     CM.modal.open({
       title: 'Ajustar stock de un lote',
       body: '<form id="fSA" data-form="ajuste" class="f" autocomplete="off" novalidate><p style="margin:0">Los ajustes no editan el stock: suman o restan un movimiento auditado.</p>' +
-        fl('Lote *', '<select class="in" name="lote"><option value="">Elegí un lote…</option>' + CM.db.lotes.map(function (l) { return opt(l.id, l.nombre + ' · ' + l.id + ' · ' + cantTxt(CM.stockLote(l.id), l.unidad)); }).join('') + '</select>') +
+        fl('Lote *', '<select class="in" name="lote"><option value="">Elegí un lote…</option>' + CM.lotesVivos().map(function (l) { return opt(l.id, l.nombre + ' · ' + l.id + ' · ' + cantTxt(CM.stockLote(l.id), l.unidad)); }).join('') + '</select>') +
         '<div class="f f2">' + fl('Tipo de ajuste', '<select class="in" name="tipo">' + opt('mas', 'Ingreso (suma)') + opt('menos', 'Egreso por pérdida, merma o corrección (resta)') + '</select>') + fl('Cantidad *', '<input class="in num" name="cant" inputmode="decimal" placeholder="0">') + '</div>' +
         fl('Motivo *', '<input class="in" name="motivo">') + '<p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fSA">Registrar ajuste</button>'

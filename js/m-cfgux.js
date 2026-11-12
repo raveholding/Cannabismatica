@@ -14,6 +14,7 @@
     { k: 'ong', t: 'La fundación', s: 'Datos de la ONG y formularios de Google', ic: 'home', m: /datos de la ong|formularios/i },
     { k: 'disp', t: 'Dispensa y REPROCANN', s: 'Reglas de la dispensación, bloqueos y topes', ic: 'flask', m: /dispensa|reprocann|tope/i },
     { k: 'din', t: 'Donaciones y facturación', s: 'Factura C, documento del receptor y rubros', ic: 'cash', m: /factura|rubro|donaci|caja/i },
+    { k: 'port', t: 'Portero digital', s: 'Timbre, emergencias y respuestas desde el sistema', ic: 'bell', m: /portero/i },
     { k: 'sis', t: 'Sistema y apariencia', s: 'Módulos activos, tema y datos del sistema', ic: 'gear', m: /.*/ }
   ];
   var LINKS = [['usuarios', 'Usuarios y permisos', 'Quién entra y qué puede hacer'], ['perifericos', 'Periféricos y ticket', 'Impresora, cajón y ticket'], ['menu-publico', 'Menú público', 'Textos, servicios y acceso oculto'],

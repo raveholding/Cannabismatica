@@ -90,7 +90,7 @@
     var topLotes = Object.keys(porLote).map(function (k) { return [k, Math.round(porLote[k] * 100) / 100]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5);
     var reps = { valido: 0, vencido: 0, tramite: 0, sin: 0 };
     Object.keys(db.pacientes).forEach(function (k) { reps[CM.estadoRep(db.pacientes[k].reprocann).k]++; });
-    var bajos = db.lotes.filter(function (l) { return CM.stockLote(l.id) <= l.min; }).length;
+    var bajos = CM.lotesVivos().filter(function (l) { return CM.stockLote(l.id) <= l.min; }).length;
     var conFC = D.aps.filter(function (a) { var c = a.comp ? CM.comp(a.comp) : null; return c && !c.anulado; }).reduce(function (s, a) { return s + a.cent; }, 0);
     var prom = D.aps.length ? Math.round(D.tot / D.aps.length) : 0;
     var res = D.tot - D.eg;

@@ -5,6 +5,11 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-12) · Portero digital integrado y Editar · agregar · borrar
+- **Portero digital** (raveholding.github.io/PorteroCannabismatica) en el sistema: Configuración → Portero digital (tema de avisos y, opcional, tema del timbre por QR). Cuando tocan el timbre, hay una emergencia o una alerta, el sistema **suena y muestra la alerta en cualquier pantalla** (aunque haya un formulario abierto), con **Ya voy · Un momento · No podemos** y **Abrir portero**. La respuesta se ve y se escucha en el portero y en el celular de la visita; el timbre por QR llega aunque el portero esté apagado. Con la pestaña en segundo plano, notificación del equipo con «Ya voy» y «Abrir portero». En cada equipo: recibir sí/no, sonido y notificaciones. Usa ntfy.sh (agregado a la política de seguridad). «Abrir portero» abre la app del portero: la cerradura sigue abriéndose con PIN, tarjeta, pase o pulsador. Prueba de punta a punta con el portero real: `t/e2e_portero_1112.py`.
+- **Editar · agregar · borrar:** genéticas de un espacio, ciclos de cultivo (editar datos y borrar), lotes (editar nombre, quimiotipo y mínimo; borrar), cupones (editar y borrar) e ítems, frases y fechas del menú público. Borrar = baja con motivo, auditada y **restaurable**; se bloquea con explicación cuando rompería la trazabilidad (lote con dispensaciones, ciclo con registros o lotes, genética con lotes cosechados, leyendas legales obligatorias). Prueba: `t/e2e_crud_1112.py`.
+- **Tema oscuro** también cuando el almacenamiento del dominio está lleno (se guarda en una cookie propia).
+
 ## Novedades (2026-11-12) · Diseño V27 y Configuración dinámica (como la demo Di Parma)
 - **Menú lateral por secciones plegables** (Gestión · Comunidad · Sistema), recordadas en cada equipo; la sección de la pantalla abierta siempre queda desplegada y, plegada, muestra la suma de sus avisos.
 - **Avisos en cada entrada del menú** (REPROCANN, stock, caja, RR. HH., solicitudes) y **campana** en la barra con el total; la lista se abre al tocarla (Esc o tocar afuera la cierra).

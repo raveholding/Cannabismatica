@@ -178,6 +178,8 @@
     CM.db.movs.forEach(function (m) { if (m.lote === id) s += m.cant; });
     return Math.round(s * 100) / 100;
   };
+  /* lotes dados de baja (2026-11-12): no se borran (trazabilidad), quedan ocultos y se pueden restaurar */
+  CM.lotesVivos = function () { return (CM.db.lotes || []).filter(function (l) { return !l.baja; }); };
   CM.lote = function (id) {
     for (var i = 0; i < CM.db.lotes.length; i++) if (CM.db.lotes[i].id === id) return CM.db.lotes[i];
     return null;

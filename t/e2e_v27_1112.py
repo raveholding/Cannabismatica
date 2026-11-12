@@ -75,7 +75,7 @@ with sync_playwright() as pw:
     # ---------- Configuración dinámica ----------
     ir('#/ajustes')
     secs = ev("[...document.querySelectorAll('.cfg-sec')].map(b=>b.dataset.cfgsec)")
-    chk(secs == ['ong', 'disp', 'din', 'sis'], 'índice por secciones: %s' % secs)
+    chk(secs == ['ong', 'disp', 'din', 'port', 'sis'], 'índice por secciones: %s' % secs)
     vis = lambda: ev("[...document.querySelectorAll('.cfg-card')].filter(c=>!c.hidden&&c.offsetParent).map(c=>c.querySelector('.cfg-ht b').textContent)")
     chk(vis() == ['Datos de la ONG', 'Formularios de Google'], 'La fundación: %s' % vis())
     alto = ev("document.documentElement.scrollHeight"); chk(alto < 2200, 'pantalla más corta (%d px; antes ~3.300)' % alto)
