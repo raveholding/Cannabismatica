@@ -32,6 +32,10 @@
   CM.fmtFecha = function (iso) {
     return /^\d{4}-\d{2}-\d{2}/.test(iso || '') ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '—';
   };
+  /* sólo la hora (HH:MM, 24 h): antes se recortaba fmtFH y en algunos navegadores quedaba «p. m.» */
+  CM.fmtHora = function (ts) {
+    try { return new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Salta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ts)); } catch (e) { return String(ts).slice(11, 16); }
+  };
   CM.fmtFH = function (ts) {
     try {
       return new Intl.DateTimeFormat('es-AR', { timeZone: 'America/Argentina/Salta', dateStyle: 'short', timeStyle: 'short' }).format(new Date(ts));

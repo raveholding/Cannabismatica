@@ -210,7 +210,7 @@
     CM.db.cmovs.push(m);
     return { ok: m };
   };
-  var CAMPOS_SELLO = ['fecha', 'ts', 'user', 'inicial', 'movs', 'porMedio', 'ingresos', 'egresos', 'esperadoEf', 'declaradoEf', 'dif', 'obs', 'conFC', 'sinFC', 'caja', 'nro'];
+  var CAMPOS_SELLO = ['fecha', 'ts', 'user', 'inicial', 'movs', 'porMedio', 'ingresos', 'egresos', 'esperadoEf', 'declaradoEf', 'dif', 'obs', 'conFC', 'sinFC', 'caja', 'nro', 'z', 'trIn', 'trOut', 'principal'];   /* los últimos son de la caja v2: en cierres viejos no existen y no cambian el sello */
   CM.hashCierre = function (c) {
     var o = {}; CAMPOS_SELLO.forEach(function (k) { o[k] = c[k]; });
     return CM.sha256(JSON.stringify(o));

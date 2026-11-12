@@ -6,7 +6,7 @@
 (function (g) {
   'use strict';
   var CM = g.CM, esc = CM.esc, money = CM.fmtMoney;
-  var TIPO = { ingreso: 'Ingreso', egreso: 'Egreso', retiro: 'Retiro', reintegro: 'Reintegro' };
+  var TIPO = { ingreso: 'Ingreso', egreso: 'Egreso', retiro: 'Retiro', reintegro: 'Reintegro', 'tr-ent': 'Traspaso recibido', 'tr-sal': 'Traspaso enviado' };
   function medioL(k) { return (CM.MEDIOS && CM.MEDIOS[k]) || k || '—'; }
   function fila(k, v) { return '<div><small>' + esc(k) + '</small><b>' + v + '</b></div>'; }
 
@@ -29,7 +29,7 @@
     var a = m.derivado && m.ref ? CM.db.aportes.filter(function (x) { return x.id === m.ref; })[0] : null;
     var h = '<div class="kv">' + fila('Operación', esc(m.id)) + fila('Fecha y hora', esc(CM.fmtFH(m.ts))) + fila('Caja', esc(caja.id) + (cerrada ? ' · cerrada' : ' · abierta')) +
       fila('Tipo', esc(TIPO[m.tipo] || m.tipo) + (a ? ' · donación' : '')) + fila('Rubro financiero', esc(m.rubroN || '—')) + fila('Medio', esc(medioL(m.medio))) +
-      fila('Importe', (m.tipo === 'ingreso' ? '' : '− ') + esc(money(m.cent))) + fila('Registró', esc(m.user || '—')) + '</div>';
+      fila('Importe', (m.tipo === 'ingreso' || m.tipo === 'tr-ent' ? '' : '− ') + esc(money(m.cent))) + fila('Registró', esc(m.user || '—')) + '</div>';
     if (m.motivo) h += '<p style="margin:10px 0 0"><b>Detalle:</b> ' + esc(m.motivo) + '</p>';
     var ids = [m.id];
     if (a) {

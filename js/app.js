@@ -9,7 +9,7 @@
     ['inicio', 'Inicio', 'home', 'inicio'], ['pacientes', 'Pacientes', 'users', 'pacientes'], ['dispensaciones', 'Dispensaciones', 'flask', 'dispensaciones'],
     ['aportes', 'Donaciones', 'heart', 'aportes'], ['reprocann', 'REPROCANN', 'shield', 'reprocann'], ['trazabilidad', 'Trazabilidad / Stock', 'chart', 'trazabilidad'],
     ['-', 'Gestión'],
-    ['dashboard', 'Dashboard', 'chart', 'dashboard'], ['caja', 'Caja', 'cash', 'caja'], ['cierre', 'Arqueo y cierre', 'lock', 'cierre'], ['cajas-cerradas', 'Cajas cerradas', 'archive', 'cerradas'],
+    ['dashboard', 'Dashboard', 'chart', 'dashboard'], ['caja', 'Caja', 'cash', 'caja'], ['cajas-tr', 'Cajas y traspasos', 'swap', 'caja'], ['cierre', 'Arqueo y cierre', 'lock', 'cierre'], ['cajas-cerradas', 'Cajas cerradas', 'archive', 'cerradas'],
     ['inventario', 'Inventario', 'box', 'inventario'], ['fidelizacion', 'Fidelización', 'star', 'fidelizacion'], ['personal', 'Personal y fichaje', 'clock', 'personal'], ['tareas', 'Tareas y organigrama', 'tasks', 'tareas'],
     ['-', 'Comunidad'],
     ['solicitudes', 'Solicitudes del menú', 'chat', 'pacientes'],
@@ -18,7 +18,7 @@
     ['nube', 'Nube', 'cloud', 'nube'], ['perifericos', 'Periféricos y ticket', 'plug', 'perifericos'], ['importexport', 'Importar / Exportar', 'swap', 'importexport'], ['integraciones', 'Integraciones', 'link', 'integraciones'],
     ['usuarios', 'Usuarios y permisos', 'key', 'usuarios'], ['auditoria', 'Auditoría', 'doc', 'auditoria'], ['ajustes', 'Configuración', 'gear', 'ajustes']
   ];
-  var TITULOS = CM.TITULOS = { inicio: 'Inicio', solicitudes: 'Solicitudes del menú', pacientes: 'Pacientes', paciente: 'Ficha del paciente', dispensaciones: 'Dispensaciones', aportes: 'Donaciones voluntarias y Factura C', reprocann: 'REPROCANN', trazabilidad: 'Trazabilidad / Stock', ajustes: 'Configuración' };
+  var TITULOS = CM.TITULOS = { inicio: 'Inicio', 'cajas-tr': 'Cajas y traspasos', solicitudes: 'Solicitudes del menú', pacientes: 'Pacientes', paciente: 'Ficha del paciente', dispensaciones: 'Dispensaciones', aportes: 'Donaciones voluntarias y Factura C', reprocann: 'REPROCANN', trazabilidad: 'Trazabilidad / Stock', ajustes: 'Configuración' };
 
   /* ---------- helpers de vista ---------- */
   function uTxt(u, n) {
@@ -55,7 +55,7 @@
   function yymm() { var h = CM.hoy(); return h.slice(2, 4) + h.slice(5, 7); }
 
   /* ---------- navegación y ruteo ---------- */
-  var MOD_DE_VISTA = { paciente: 'pacientes', 'cajas-cerradas': 'cerradas', 'menu-publico': 'menu', solicitudes: 'pacientes' };
+  var MOD_DE_VISTA = { paciente: 'pacientes', 'cajas-cerradas': 'cerradas', 'cajas-tr': 'caja', 'menu-publico': 'menu', solicitudes: 'pacientes' };
   function modDe(v) { return MOD_DE_VISTA[v] || v; }
   CM.visible = function (n) {
     if (n[3] === 'inicio') return true;
@@ -483,9 +483,9 @@
   }
   VIEWS.trazabilidad = function () {
     var db = CM.db, h = CM.hoy();
-    var stock = '<div class="tw"><table><thead><tr><th>Lote</th><th>Preparado</th><th>Tipo</th><th>Quimiotipo</th><th>Ciclo de origen</th><th class="n">Ingresó</th><th class="n">Disponible</th><th>Estado</th></tr></thead><tbody>' + db.lotes.map(function (l) {
+    var stock = '<div class="tw"><table><thead><tr><th>Lote</th><th>Preparado</th><th>Tipo</th><th>Quimiotipo</th><th>Ciclo de origen</th><th class="n">Aporte sugerido</th><th class="n">Ingresó</th><th class="n">Disponible</th><th>Estado</th></tr></thead><tbody>' + db.lotes.map(function (l) {
       var s = CM.stockLote(l.id), ing = db.movs.filter(function (m) { return m.lote === l.id && m.tipo === 'ingreso'; }).reduce(function (a, m) { return a + m.cant; }, 0);
-      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td>' + (l.cu ? esc(cicloTxt(l.cu)) : '<span class="hint">Sin ciclo</span>') + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td></tr>';
+      return '<tr><td>' + esc(l.id) + '</td><td>' + esc(l.nombre) + '</td><td>' + esc(CM.PRODUCTOS[l.prod].n) + '</td><td>' + esc(l.quim) + '</td><td>' + (l.cu ? esc(cicloTxt(l.cu)) : '<span class="hint">Sin ciclo</span>') + '</td><td class="n">' + (CM.sugLote(l) ? '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '" aria-label="Cambiar aporte sugerido de ' + esc(l.id) + '">' + esc(CM.fmtMoney(CM.sugLote(l))) + '</button>' : '<button class="btn sm" data-act="lote-sug" data-id="' + esc(l.id) + '">Cargar</button>') + '</td><td class="n">' + esc(cantTxt(ing, l.unidad)) + '</td><td class="n"><b>' + esc(cantTxt(s, l.unidad)) + '</b></td><td>' + (s <= 0 ? '<span class="pill p-bad">Agotado</span>' : s <= l.min ? '<span class="pill p-warn">Stock bajo</span>' : '<span class="pill p-ok">Normal</span>') + '</td></tr>';
     }).join('') + '</tbody></table></div>';
     var movs = db.movs.slice().sort(function (a, b) { return b.ts.localeCompare(a.ts) || b.id.localeCompare(a.id); }).slice(0, 25);
     var mt = '<div class="tw"><table><thead><tr><th>Fecha</th><th>Lote</th><th>Movimiento</th><th class="n">Cantidad</th><th>Referencia / motivo</th><th>Usuario</th></tr></thead><tbody>' + movs.map(function (m) {
@@ -493,7 +493,7 @@
       return '<tr><td>' + CM.fmtFecha(m.fecha) + '</td><td>' + esc(m.lote) + '</td><td>' + esc({ ingreso: 'Ingreso', dispensacion: 'Dispensación', ajuste: 'Ajuste', anulacion: 'Anulación de dispensación' }[m.tipo] || m.tipo) + '</td><td class="n">' + (m.cant > 0 ? '+' : '') + esc(CM.fmtNum(m.cant)) + ' ' + esc(l ? l.unidad === 'g' ? 'g' : 'u.' : '') + '</td><td>' + esc((m.ref ? m.ref + ' ' : '') + (m.motivo || '')) + '</td><td>' + esc(m.user) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
     return '<div class="page-h"><div><h1>Trazabilidad / Stock</h1><p>Control del stock de cada lote y de las cantidades dispensadas para la auditoría interna. El stock se calcula sumando movimientos: nada se edita ni se borra, se corrige con un movimiento nuevo.</p></div>' +
-      '<div class="row"><button class="btn" data-act="lote-nuevo">' + CM.icon('plus') + 'Nuevo lote</button><button class="btn" data-act="stock-ajuste">Ajustar stock</button><button class="btn" data-act="lote-ciclo">Ciclo de un lote</button></div></div>' +
+      '<div class="row"><button class="btn" data-act="lote-nuevo">' + CM.icon('plus') + 'Nuevo lote</button><button class="btn" data-act="stock-ajuste">Ajustar stock</button><button class="btn" data-act="lote-ciclo">Ciclo de un lote</button><button class="btn" data-act="lote-sug">Aporte sugerido</button></div></div>' +
       '<section class="card"><h2>Stock disponible por lote</h2>' + stock + '</section>' +
       '<section class="card" style="margin-top:14px"><div class="row sp"><h2>Dispensaciones por período</h2><div class="row"><button class="btn sm" data-act="csv-disp">' + CM.icon('dl') + 'Exportar CSV</button><button class="btn sm" data-act="print-tr">' + CM.icon('print') + 'Imprimir informe</button></div></div>' +
       '<div class="row" style="margin:10px 0 14px"><label class="fl" style="max-width:190px"><span>Desde</span><input id="trDesde" type="date" class="in" value="' + h.slice(0, 8) + '01"></label><label class="fl" style="max-width:190px"><span>Hasta</span><input id="trHasta" type="date" class="in" value="' + h + '"></label>' +
@@ -812,13 +812,14 @@
         '<div class="f f2">' + flr('Cantidad entregada * <span id="dsUni" style="color:var(--ac)"></span>', '<input class="in num" name="cant" inputmode="decimal" placeholder="0"><span id="dsDisp" class="hint"></span>') +
         fl('Indicación / posología', '<input class="in" name="indic" placeholder="Según indicación médica">') + '</div>' +
         flr('Observación<span id="dsObsReq"></span>', '<textarea class="in" name="obs" style="min-height:64px" placeholder="Obligatoria si el REPROCANN está en trámite, sin cargar o se supera el tope"></textarea>') +
-        '<fieldset><legend>Donación voluntaria (opcional)</legend><div class="f f2">' + fl('Importe de la donación', '<input class="in num" name="aporte" inputmode="decimal" placeholder="0">') +
-        fl('Medio', medioSelect()) + '</div>' + mixtoHtml() +
+        '<fieldset><legend>Donación voluntaria (opcional)</legend>' + CM.aporteCalcHtml() + '<div class="f f2">' +
+        fl('Medio', medioSelect()) + '</div>' + mixtoHtml() + CM.cambioHtml() +
         (fcSim() ? '<label class="chk" style="margin-top:10px"><input type="checkbox" name="fc" checked><span>Emitir Factura C simulada si hay donación</span></label>' : '') + '</fieldset>' +
         '<p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fDS">Confirmar dispensación</button>'
     });
     if (p) mostrarAvisos(p);
+    var fds = document.getElementById('fDS'); if (fds) CM.apcRecalc(fds);
   }
   function actualizarLote() {
     var sel = $('#dsLote'); if (!sel) return;
@@ -852,6 +853,12 @@
     if (e.aporte.value.trim()) { aporte = CM.parseMonto(e.aporte.value); if (isNaN(aporte) || aporte < 0) return fail(f, 'aporte', 'La donación no es un importe válido (ej.: 15.000 o 15000,50).'); }
     var mix = null;
     if (aporte > 0 && e.medio.value === 'mixto') { mix = CM.leerMixto(f, aporte); if (mix.err) return fail(f, mix.campo, mix.err); }
+    var sugD = e.sug && e.sug.value.trim() ? CM.parseMonto(e.sug.value) : 0;
+    if (isNaN(sugD) || sugD < 0) return fail(f, 'sug', 'El aporte sugerido no es un importe válido.');
+    var descD = e.desc && e.desc.value.trim() ? CM.parseMonto(e.desc.value) : 0;
+    if (isNaN(descD) || descD < 0) return fail(f, 'desc', 'El descuento no es un importe válido.');
+    var cb = { recibido: 0, cambio: 0, cmMedio: '' };
+    if (aporte > 0) { cb = CM.leerCambio(f, aporte, e.medio.value, mix && mix.pays); if (cb.err) return fail(f, cb.campo, cb.err); }
     f.dataset.busy = '1';
     var h = CM.hoy(), id = CM.nextId('D');
     CM.db.disp.push({ id: id, fecha: h, ts: new Date().toISOString(), dni: dni, lote: l.id, prod: l.prod, nombre: l.nombre, quim: l.quim, unidad: l.unidad, cant: cant, indic: e.indic.value.trim(), obs: obs, user: CM.db.cfg.operador, aporte: '', anulada: null, cu: cu || '', tipoSeg: 'dispensación' });
@@ -860,19 +867,23 @@
     if (aporte > 0) {
       ap = { id: CM.nextId('A'), fecha: h, ts: new Date().toISOString(), dni: dni, disp: id, cent: aporte, medio: e.medio.value, concepto: 'Donación voluntaria', obs: '', user: CM.db.cfg.operador, estado: 'registrado', comp: '' };
       if (mix) ap.pays = mix.pays;
+      if (sugD > 0) { var cc = CM.calcAporte(sugD, cant); ap.calc = { sug: sugD, cant: cant, sub: cc.sub, libres: cc.libres, desc: descD }; }
+      if (cb.cambio > 0) { ap.recibido = cb.recibido; ap.cambio = cb.cambio; ap.cmMedio = cb.cmMedio; }
       CM.db.aportes.push(ap); CM.db.disp[CM.db.disp.length - 1].aporte = ap.id;
-      CM.audit('Donación voluntaria', ap.id + ' · Legajo ' + CM.legDe(dni) + ' · ' + CM.fmtMoney(aporte) + ' · ' + CM.medioTxt(ap));
+      CM.audit('Donación voluntaria', ap.id + ' · Legajo ' + CM.legDe(dni) + ' · ' + CM.fmtMoney(aporte) + ' · ' + CM.medioTxt(ap) + (ap.calc || ap.cambio ? ' · ' + CM.aporteDetalle(ap) : ''));
       if (e.fc && e.fc.checked) { comp = CM.emitirFacturaC(ap); CM.audit('Factura C simulada', comp.pv + '-' + comp.nro + ' · ' + ap.id); }
     }
     CM.audit('Dispensación', id + ' · Legajo ' + CM.legDe(dni) + (cu ? ' · ciclo ' + cu : '') + ' · ' + l.nombre + ' · ' + cantTxt(cant, l.unidad) + (obs ? ' · obs: ' + obs : ''));
     CM.save(); CM.modal.close(true); render();
+    if (ap && CM.cajonTrasDonacion) CM.cajonTrasDonacion(ap);
     exitoDispensacion(id, comp);
   };
   function exitoDispensacion(id, comp) {
     var d = CM.db.disp.filter(function (x) { return x.id === id; })[0];
     CM.modal.open({
       title: 'Dispensación registrada',
-      body: '<div class="note ok"><b>' + esc(id) + '</b> · ' + esc(nombreCorto(nombreDe(d.dni))) + ' · ' + esc(d.nombre) + ' · ' + esc(cantTxt(d.cant, d.unidad)) + '. El stock del lote ya se descontó.</div>' + (comp ? '<div class="note info">Se emitió la Factura C simulada ' + esc(comp.pv + '-' + comp.nro) + '.</div>' : '') +
+      body: '<div class="note ok"><b>' + esc(id) + '</b> · ' + esc(nombreCorto(nombreDe(d.dni))) + ' · ' + esc(d.nombre) + ' · ' + esc(cantTxt(d.cant, d.unidad)) + '. El stock del lote ya se descontó.</div>' +
+        (function () { var a = d.aporte ? CM.db.aportes.filter(function (x) { return x.id === d.aporte; })[0] : null; if (!a) return ''; return '<div class="note info">Donación ' + esc(a.id) + ': <b>' + esc(CM.fmtMoney(a.cent)) + '</b> · ' + esc(CM.medioTxt(a)) + (CM.aporteDetalle(a) ? '<br><small>' + esc(CM.aporteDetalle(a)) + '</small>' : '') + '</div>' + (a.cambio > 0 ? '<div class="note warn cambio-ok" role="status"><b>Entregá ' + esc(CM.fmtMoney(a.cambio)) + ' de cambio en efectivo.</b> Queda registrado en la caja como «Cambio entregado».</div>' : ''); })() + (comp ?'<div class="note info">Se emitió la Factura C simulada ' + esc(comp.pv + '-' + comp.nro) + '.</div>' : '') +
         '<div class="row"><button class="btn pri" data-act="etiqueta" data-id="' + esc(id) + '">' + CM.icon('qr') + 'Imprimir etiqueta con QR</button>' + (comp ? '<button class="btn" data-act="ver-comp" data-id="' + esc(comp.id) + '">' + CM.icon('doc') + 'Ver Factura C</button>' : '') + '<a class="btn" href="#/paciente/' + esc(d.dni) + '" data-act="modal-close">Ir a la ficha</a></div>',
       footer: '<button class="btn" data-act="modal-close">Cerrar</button>'
     });
@@ -928,7 +939,7 @@
           '<div id="apDonante" class="card flat"><b>Donante (opcional)</b><p class="hint" style="margin:4px 0 8px">Si no cargás nada, se registra como consumidor final. El documento no es obligatorio.</p>' + fl('Nombre del donante', '<input class="in" name="dnom" autocomplete="off">') + CM.docCampos(null) + '</div>') +
         '<div class="f f2">' + fl('Concepto', '<select class="in" name="concepto">' + CM.CONCEPTOS.map(function (c) { return opt(c, c); }).join('') + '</select>') +
         fl('Medio', medioSelect()) + '</div>' +
-        fl('Importe de la donación (en pesos) *', '<input class="in num" name="importe" inputmode="decimal" placeholder="0" style="font-size:20px">') + mixtoHtml() +
+        fl('Importe de la donación (en pesos) *', '<input class="in num" name="importe" inputmode="decimal" placeholder="0" style="font-size:20px">') + mixtoHtml() + CM.cambioHtml() +
         fl('Observación', '<input class="in" name="obs" placeholder="Opcional">') +
         (fcSim() ? '<label class="chk"><input type="checkbox" name="fc" checked><span>Emitir Factura C simulada ahora</span></label>' : '') + '<p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fAP">Registrar donación</button>'
@@ -954,15 +965,19 @@
     }
     var mixA = null;
     if (e.medio.value === 'mixto') { mixA = CM.leerMixto(f, cent); if (mixA.err) return fail(f, mixA.campo, mixA.err); }
+    var cbA = CM.leerCambio(f, cent, e.medio.value, mixA && mixA.pays); if (cbA.err) return fail(f, cbA.campo, cbA.err);
     f.dataset.busy = '1';
     var dni = p ? p.dni : '';
     var a = { id: CM.nextId('A'), fecha: CM.hoy(), ts: new Date().toISOString(), dni: dni, rec: rec, disp: '', cent: cent, medio: e.medio.value, concepto: e.concepto.value, obs: e.obs.value.trim(), user: CM.db.cfg.operador, estado: 'registrado', comp: '' };
     if (mixA) a.pays = mixA.pays;
+    if (cbA.cambio > 0) { a.recibido = cbA.recibido; a.cambio = cbA.cambio; a.cmMedio = cbA.cmMedio; }
     CM.db.aportes.push(a); CM.audit('Donación voluntaria', a.id + ' · ' + (p ? 'Legajo ' + CM.legDe(dni) : 'donante ' + (rec.doc ? CM.fmtDoc(rec.doc) : 'sin documento')) + ' · ' + CM.fmtMoney(cent) + ' · ' + a.concepto + ' · ' + CM.medioTxt(a));
     var c = null;
     if (e.fc && e.fc.checked) { c = CM.emitirFacturaC(a); CM.audit('Factura C simulada', c.pv + '-' + c.nro + ' · ' + a.id); }
     CM.save(); CM.modal.close(true); render();
     if (c) verComprobante(c.id); else CM.toast('Donación registrada.');
+    if (CM.cajonTrasDonacion) CM.cajonTrasDonacion(a);
+    if (a.cambio > 0) CM.toast('Entregá ' + CM.fmtMoney(a.cambio) + ' de cambio en efectivo (queda registrado en la caja).');
   };
   /* Monto (en centavos) desde el cual la ONG exige identificar al receptor; vacío = nunca se exige. */
   CM.umbralDoc = function () { var v = CM.db.ong && CM.db.ong.umbralDoc; return v > 0 ? v : 0; };
@@ -1061,7 +1076,8 @@
         fl('Tipo de preparado *', '<select class="in" name="prod">' + Object.keys(CM.PRODUCTOS).map(function (k) { return opt(k, CM.PRODUCTOS[k].n + ' (' + CM.PRODUCTOS[k].un + ')'); }).join('') + '</select>') +
         fl('Nombre / genética *', '<input class="in" name="nombre" placeholder="Ej.: Fancy Q1">') +
         '<div class="f f2">' + fl('Quimiotipo', '<input class="in" name="quim" placeholder="Q1, Q2, Q3…">') + fl('Cantidad que ingresa *', '<input class="in num" name="cant" inputmode="decimal" placeholder="0">') + '</div>' +
-        fl('Aviso de stock bajo desde', '<input class="in num" name="min" inputmode="decimal" placeholder="' + CM.db.cfg.stockBajoDefault + '">') + cicloSelect('') + '<p class="err" role="alert" data-err></p></form>',
+        '<div class="f f2">' + fl('Aviso de stock bajo desde', '<input class="in num" name="min" inputmode="decimal" placeholder="' + CM.db.cfg.stockBajoDefault + '">') +
+        fl('Aporte sugerido por unidad (opcional)', '<input class="in num" name="sug" inputmode="decimal" placeholder="Si se deja vacío, toma el de la misma genética">') + '</div>' + cicloSelect('') + '<p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fLN">Crear lote</button>'
     });
   };
@@ -1105,7 +1121,9 @@
     var ab = CM.norm(nombre).replace(/[^a-z0-9]/g, '').slice(0, 3).toUpperCase() || 'LOT', id = 'L-' + yymm() + '-' + ab, n = 1;
     while (CM.lote(id)) { n++; id = 'L-' + yymm() + '-' + ab + n; }
     var cuL = e.cu ? e.cu.value : ''; if (cuL && !(CM.cultivo && CM.cultivo(cuL))) cuL = '';
-    CM.db.lotes.push({ id: id, prod: prod, nombre: nombre, quim: e.quim.value.trim() || '—', unidad: un, min: min, ingreso: CM.hoy(), cu: cuL });
+    var sugL = e.sug && e.sug.value.trim() ? CM.parseMonto(e.sug.value) : CM.sugPorNombre(nombre);
+    if (isNaN(sugL) || sugL < 0) return fail(f, 'sug', 'El aporte sugerido no es un importe válido.');
+    CM.db.lotes.push({ id: id, prod: prod, nombre: nombre, quim: e.quim.value.trim() || '—', unidad: un, min: min, ingreso: CM.hoy(), cu: cuL, sug: sugL || 0 });
     CM.addMov(id, 'ingreso', cant, '', 'Ingreso inicial del lote');
     CM.audit('Nuevo lote', id + ' · ' + nombre + ' · ' + cantTxt(cant, un)); CM.save(); CM.modal.close(true); render(); CM.toast('Lote ' + id + ' creado.');
   };

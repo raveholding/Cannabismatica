@@ -469,7 +469,7 @@
     var r = CM.fichar(f.elements.cod.value, /^EMP-/i.test(f.elements.cod.value) ? 'QR / tarjeta' : 'DNI manual');
     if (r.err) { resFicha(f, r.err, false); return; }
     CM.audit('Fichada', r.emp.nombre + ' · ' + r.ok.tipo); CM.save();
-    render(); var nf = $('form[data-form="fichar"]'); if (nf) resFicha(nf, (r.ok.tipo === 'entrada' ? 'Entrada' : 'Salida') + ' registrada: ' + r.emp.nombre + ' a las ' + CM.fmtFH(r.ok.ts).slice(-5) + '.', true);
+    render(); var nf = $('form[data-form="fichar"]'); if (nf) resFicha(nf, (r.ok.tipo === 'entrada' ? 'Entrada' : 'Salida') + ' registrada: ' + r.emp.nombre + ' a las ' + CM.fmtHora(r.ok.ts) + '.', true);
   };
   CM.acts['fichar-nfc'] = function (t) {
     var act = CM.db.staff.filter(function (e) { return e.activo; }); if (!act.length) return;

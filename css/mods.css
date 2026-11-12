@@ -271,3 +271,12 @@ textarea.in.tall{min-height:160px}
 .mitj-vacia{max-width:460px;margin:40px auto;text-align:center}
 .mitj-vacia .btn{margin:6px}
 tr.sel td{background:rgba(160,222,74,.12)}
+
+/* ---------- 2026-11-11 · aporte sugerido, 5+1, recibido / cambio y caja v2 ---------- */
+output.in.ro{display:flex;align-items:center;background:var(--s2);border-style:dashed;color:var(--tx);font-variant-numeric:tabular-nums;font-weight:600}
+output.in.ro.big{font-size:20px;color:var(--ac)}
+.apc{display:grid;gap:10px;margin-bottom:10px}
+.cambio{margin-top:10px;border-color:rgba(160,222,74,.35)}
+.cambio[hidden]{display:none}
+.cambio-ok{font-size:1.05rem}
+tr.tot td{border-top:2px solid var(--bd2);background:var(--s2)}

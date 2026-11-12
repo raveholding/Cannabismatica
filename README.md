@@ -5,6 +5,14 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-11) · Etapa 1: aporte sugerido, 5+1, cambio y caja v2
+- **Dispensación**: aporte sugerido por unidad en cada lote (Trazabilidad / Stock → «Aporte sugerido»; un lote nuevo hereda el de la misma genética). Subtotal, descuento **5+1** (cada 5, 1 sin aporte) y total se calculan solos y se pueden cambiar: la donación sigue siendo voluntaria.
+- **Recibido y cambio** (dispensación y donación suelta; efectivo, transferencia de más o parte en efectivo de un pago mixto): en la caja entra lo recibido y sale «Cambio entregado» en efectivo.
+- **Caja v2** (`js/m-caja2.js`): caja principal opcional, **traspasos** entre cajas (colección `ctransf`, sólo se agregan; se corrigen con traspaso inverso; no son ingresos ni egresos), consolidado de cajas abiertas (pantalla «Cajas y traspasos»), **corte X** (colección `cortesx`) y número **Z** dentro del sello del cierre (los cierres viejos siguen íntegros).
+- **Impresora térmica directa** (`js/m-ticket.js`, Periféricos y ticket): USB / serie / Bluetooth, PC850, corte parcial/total, cajón por pin 2/5. Pendiente de prueba física.
+- Corregido: la hora de los movimientos de caja mostraba «p. m.» (ahora `CM.fmtHora`).
+- Servidor: `supabase/07-caja-traspasos-cortes.sql` (instalado el 2026-11-11). Pruebas: `t/e2e_caja2_1111.py` (75).
+
 ## Novedades (2026-11-10) · Empezar de cero conservando pacientes
 - **Configuración → Empezar de cero** ofrece dos modos. Por defecto **«Conservar los pacientes, sus legajos y documentos»**: quedan las fichas (datos, historia clínica, REPROCANN, consentimiento, N.º de socio), los documentos del legajo (`legDocs`: consentimiento informado, REPROCANN, escaneos y accesos a Drive del sistema anterior), los seguimientos y las historias clínicas del menú todavía sin revisar. Se retira lo demás: lotes, stock, dispensaciones, donaciones, comprobantes, cajas, sellos, cupones, membresías, inventario, cultivo, tareas, personal, turnos y altas al club pendientes. «Borrar todo» sigue existiendo.
 - Servidor: `supabase/06-empezar-de-cero-conservando-pacientes.sql` (función `sync_vaciar_conservar`). Antes de retirar copia todo a `respaldo_registros` (sólo visible desde el SQL Editor). Sin esta actualización instalada el botón avisa y **no borra nada**.
