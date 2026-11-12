@@ -145,6 +145,19 @@ with sync_playwright() as pw:
     m.tap('.pub-logo'); m.wait_for_timeout(120); m.tap('.pub-logo'); m.wait_for_timeout(400)
     chk(m.evaluate("location.hash") == '#/acceso', 'doble toque en el celular abre el acceso')
 
+    # ---------- almacenamiento lleno (GitHub Pages comparte el espacio con otros sistemas) ----------
+    q = b.new_context(viewport={'width': 1366, 'height': 900}).new_page()
+    q.route('**/js/config.js*', lambda r: r.fulfill(status=200, content_type='application/javascript', body=CFG))
+    q.goto(U); q.wait_for_timeout(700)
+    q.evaluate("(()=>{const u=CM.db.users[0];u.activo=true;u.rol='admin';CM.ses.set(u.id);CM.db.cfg.rol='admin';})()")
+    q.evaluate("(()=>{localStorage.removeItem('cmv3_tema');const x='x'.repeat(1024*1024);let i=0;try{for(;i<20;i++)localStorage.setItem('relleno_'+i,x)}catch(e){};let s='';try{for(;;){s+='y'.repeat(4096);localStorage.setItem('relleno_z',s)}}catch(e){}})()")
+    q.goto(U + '#/inicio'); q.wait_for_timeout(400)
+    q.click('#btnTema'); q.wait_for_timeout(200)
+    chk(q.evaluate("document.documentElement.dataset.tema") == 'oscuro', 'con el almacenamiento lleno, el botón igual pasa a oscuro')
+    q.reload(); q.wait_for_timeout(700)
+    chk(q.evaluate("document.documentElement.dataset.tema") == 'oscuro', 'y al recargar sigue en oscuro (se guarda en una cookie propia)')
+    q.evaluate("(()=>{Object.keys(localStorage).filter(k=>k.indexOf('relleno_')===0).forEach(k=>localStorage.removeItem(k))})()")
+
     chk(not errs, 'sin errores en la consola: %s' % errs[:3])
     b.close()
 print('\n%d ok · %d fallas' % (oks[0], len(fallas)))

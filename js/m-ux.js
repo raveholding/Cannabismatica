@@ -18,9 +18,9 @@
      TEMA
      ================================================================= */
   var LS = 'cmv3_tema', mq = g.matchMedia ? g.matchMedia('(prefers-color-scheme: dark)') : null;
-  CM.temaPref = function () { try { var v = g.localStorage.getItem(LS); return v === 'oscuro' || v === 'sistema' ? v : 'claro'; } catch (e) { return 'claro'; } };   /* sin elección: claro, como siempre */
+  CM.temaPref = function () { try { var v = g.cmPref ? g.cmPref.get(LS) : g.localStorage.getItem(LS); return v === 'oscuro' || v === 'sistema' ? v : 'claro'; } catch (e) { return 'claro'; } };   /* sin elección: claro, como siempre */
   CM.temaAplicar = function () { var p = CM.temaPref(), t = p === 'sistema' ? (mq && mq.matches ? 'oscuro' : 'claro') : p; d.documentElement.setAttribute('data-tema', t); var b = d.getElementById('btnTema'); if (b) { b.innerHTML = iconTema(p) + '<span>' + { claro: 'Claro', oscuro: 'Oscuro', sistema: 'Sistema' }[p] + '</span>'; b.setAttribute('aria-label', 'Tema: ' + p + '. Cambiar'); } return t; };
-  CM.temaPoner = function (v) { try { g.localStorage.setItem(LS, v); } catch (e) { /* sin almacenamiento */ } CM.temaAplicar(); };
+  CM.temaPoner = function (v) { try { if (g.cmPref) g.cmPref.set(LS, v); else g.localStorage.setItem(LS, v); } catch (e) { /* sin almacenamiento */ } CM.temaAplicar(); };
   if (mq && mq.addEventListener) mq.addEventListener('change', function () { if (CM.temaPref() === 'sistema') CM.temaAplicar(); });
   function iconTema(p) { return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + (p === 'oscuro' ? '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/>' : p === 'claro' ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>' : '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>') + '</svg>'; }
   CM.acts['tema-ciclo'] = function () { var o = ['claro', 'oscuro', 'sistema'], p = CM.temaPref(); CM.temaPoner(o[(o.indexOf(p) + 1) % 3]); CM.toast('Tema: ' + { claro: 'claro', oscuro: 'oscuro', sistema: 'el del sistema' }[CM.temaPref()] + '.'); };

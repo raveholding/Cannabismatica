@@ -9,8 +9,8 @@
   'use strict';
   var CM = g.CM, esc = CM.esc, d = document;
   var LS = 'cmv3_navg';
-  function leer() { try { return JSON.parse(g.localStorage.getItem(LS) || '{}') || {}; } catch (e) { return {}; } }
-  function guardar(o) { try { g.localStorage.setItem(LS, JSON.stringify(o)); } catch (e) { /* sin almacenamiento */ } }
+  function leer() { try { return JSON.parse((g.cmPref ? g.cmPref.get(LS) : g.localStorage.getItem(LS)) || '{}') || {}; } catch (e) { return {}; } }
+  function guardar(o) { try { if (g.cmPref) g.cmPref.set(LS, JSON.stringify(o)); else g.localStorage.setItem(LS, JSON.stringify(o)); } catch (e) { /* sin almacenamiento */ } }
   var MAPA = { rep: 'reprocann', repp: 'reprocann', stock: 'trazabilidad', agot: 'trazabilidad', rh: 'personal', caja: 'caja' };
   function avisos() { try { return CM.uxAvisos ? CM.uxAvisos() : []; } catch (e) { return []; } }
 
