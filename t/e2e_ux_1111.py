@@ -41,12 +41,14 @@ with sync_playwright() as pw:
     ctx.pages[0].emulate_media(color_scheme='light'); p.wait_for_timeout(150)
     chk(ev("document.documentElement.dataset.tema") == 'claro', '«Sistema» cambia solo si el equipo pasa a claro')
     ir('#/ajustes')
-    chk(p.locator('#uxApar h2', has_text='Apariencia').count() == 1, 'Configuración → Apariencia')
+    p.click('[data-cfgsec=sis]'); p.wait_for_timeout(100)
+    if not p.locator('#uxApar.open').count(): p.click('#uxApar .cfg-head'); p.wait_for_timeout(100)
+    chk(p.locator('#uxApar .cfg-ht b', has_text='Apariencia').count() == 1, 'Configuración → Apariencia')
     p.click('#uxApar [data-act=tema-set][data-v=claro]'); p.wait_for_timeout(150)
     chk(ev("localStorage.getItem('cmv3_tema')") == 'claro' and p.locator('#uxApar [data-v=claro][aria-pressed=true]').count() == 1, 'Apariencia → Claro')
 
     # ---------- menú agrupado ----------
-    navs = ev("Array.from(document.querySelectorAll('#nav a')).map(a=>a.textContent.trim())")
+    navs = ev("Array.from(document.querySelectorAll('#nav a')).map(a=>(a.querySelector('span')||a).textContent.trim())")
     chk('Gestión de caja' in navs and 'Arqueo y cierre' not in navs and 'Cajas cerradas' not in navs and 'Cajas y traspasos' not in navs, 'una sola entrada «Gestión de caja» en el menú')
     for h, t in [('#/caja', 'Caja actual'), ('#/cajas-tr', 'Cajas y traspasos'), ('#/cierre', 'Arqueo y cierre'), ('#/cajas-cerradas', 'Cajas cerradas')]:
         ir(h)
@@ -82,6 +84,7 @@ with sync_playwright() as pw:
     av = ev("CM.uxAvisos().map(a=>a.k)")
     chk(p.locator('#uxAvisos .ux-av').count() == len(av) and len(av) >= 1, 'avisos en la barra: %s' % av)
     if 'repp' in av or 'rep' in av:
+        p.click('#uxBell'); p.wait_for_timeout(150)
         p.click('#uxAvisos [data-k=%s]' % ('rep' if 'rep' in av else 'repp')); p.wait_for_timeout(300)
         chk(ev("location.hash") == '#/reprocann', 'tocar el aviso de REPROCANN lleva a REPROCANN')
     ev("(()=>{const u=CM.db.users[0];u.rol='operador';CM.db.cfg.rol='operador';})()"); ir('#/inicio')

@@ -5,6 +5,13 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-12) · Diseño V27 y Configuración dinámica (como la demo Di Parma)
+- **Menú lateral por secciones plegables** (Gestión · Comunidad · Sistema), recordadas en cada equipo; la sección de la pantalla abierta siempre queda desplegada y, plegada, muestra la suma de sus avisos.
+- **Avisos en cada entrada del menú** (REPROCANN, stock, caja, RR. HH., solicitudes) y **campana** en la barra con el total; la lista se abre al tocarla (Esc o tocar afuera la cierra).
+- **Botón principal «Registrar dispensación» [F1]** arriba del menú (flotante en el celular); desde la ficha abre la dispensación de ese paciente. Respeta los permisos del rol.
+- **Configuración dinámica:** buscador «¿Qué querés cambiar?» (tecla /), índice por secciones (La fundación · Dispensa y REPROCANN · Donaciones y facturación · Sistema y apariencia), tarjetas plegables con resumen, «Sin guardar» y barra de Guardar fija, la validación abre la sección del campo con error, atajos a los otros ajustes. No se cambió ningún ajuste ni su guardado.
+- **Menú público:** doble clic (o doble toque) sobre el logo abre el acceso del equipo (se apaga con «Acceso oculto» en Menú público → Compartir y acceso). Los enlaces del encabezado ya no quedan debajo del logo.
+
 ## Novedades (2026-11-12) · Dispensa con varios productos y REPROCANN desde los documentos
 - **Dispensa con 1 o varios productos** («Agregar otro producto», hasta 8): cada producto con su aporte sugerido, su 5+1 y su subtotal; una sola donación, un solo cambio y un solo comprobante. Stock controlado por lote; una etiqueta por producto.
 - **Ficha del paciente:** «Carpeta del legajo» y «Documentos y escaneos» quedan al final.

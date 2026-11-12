@@ -1,0 +1,151 @@
+"""Diseño V27 · 2026-11-12 (Chromium real, modo local con datos FICTICIOS).
+Menú por secciones plegables, avisos por entrada, botón «Registrar dispensación» [F1], campana de avisos,
+Configuración dinámica (secciones, buscador, sin guardar, validación) y acceso oculto con doble clic en el logo del menú público.
+Uso: python3 t/e2e_v27_1112.py   (PAGINA=index.html para el paquete publicado)"""
+import http.server, os, socketserver, threading, json
+from playwright.sync_api import sync_playwright
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); os.chdir(RAIZ)
+class Q(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *a): pass
+srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
+U = 'http://127.0.0.1:%d/%s' % (srv.server_address[1], os.environ.get('PAGINA', 'dev.html'))
+oks, fallas = [0], []
+def chk(c, n):
+    if c: oks[0] += 1; print('ok  ' + n)
+    else: fallas.append(n); print('FALLA ' + n)
+CFG = "window.CM_CFG={url:'',key:'',inactividadMin:15};"
+with sync_playwright() as pw:
+    b = pw.chromium.launch()
+    ctx = b.new_context(viewport={'width': 1366, 'height': 900})
+    p = ctx.new_page(); errs = []
+    p.on('pageerror', lambda e: errs.append(str(e))); p.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
+    p.route('**/js/config.js*', lambda r: r.fulfill(status=200, content_type='application/javascript', body=CFG))
+    p.goto(U); p.wait_for_timeout(700)
+    ev = p.evaluate
+    def como(rol): ev("(()=>{const u=CM.db.users[0];u.activo=true;u.rol=%s;CM.ses.set(u.id);CM.db.cfg.rol=%s;CM.db.cfg.operador=u.nombre;})()" % (json.dumps(rol), json.dumps(rol)))
+    como('admin')
+    def ir(h): p.goto(U + '#/inicio'); p.wait_for_timeout(80); p.goto(U + h); p.wait_for_timeout(400)
+    ir('#/inicio')
+
+    # ---------- menú lateral ----------
+    gs = ev("[...document.querySelectorAll('#nav .nav-g')].map(g=>g.dataset.g)")
+    chk(gs == ['Gestión', 'Comunidad', 'Sistema'], 'menú por secciones: %s' % gs)
+    p.click('#nav .nav-gh[data-g="Sistema"]'); p.wait_for_timeout(100)
+    chk(ev("document.querySelector('#nav .nav-g[data-g=Sistema]').classList.contains('cerr')") and not p.locator('#nav a[href="#/nube"]').is_visible(), 'plegar «Sistema» oculta sus entradas')
+    ir('#/inicio')
+    chk(ev("document.querySelector('#nav .nav-g[data-g=Sistema]').classList.contains('cerr')"), 'se recuerda plegada al cambiar de pantalla')
+    ir('#/auditoria')
+    chk(not ev("document.querySelector('#nav .nav-g[data-g=Sistema]').classList.contains('cerr')"), 'la sección de la pantalla abierta siempre queda desplegada')
+    ir('#/inicio'); p.click('#nav .nav-gh[data-g="Sistema"]'); p.wait_for_timeout(100)
+    av = ev("CM.uxAvisos()")
+    rep = sum(a['n'] for a in av if a['k'] in ('rep', 'repp'))
+    if rep: chk(p.locator('#nav a[href="#/reprocann"] .nav-badge').inner_text() == str(rep), 'REPROCANN muestra %d aviso(s) en el menú' % rep)
+    if any(a['k'] == 'caja' for a in av): chk(p.locator('#nav a[href="#/caja"] .nav-badge').count() == 1, '«Gestión de caja» muestra su aviso')
+    p.click('#nav .nav-gh[data-g="Gestión"]'); p.wait_for_timeout(100)
+    gn = p.locator('#nav .nav-g[data-g="Gestión"] .nav-gn')
+    if any(a['k'] == 'caja' for a in av): chk(gn.is_visible() and int(gn.inner_text()) >= 1, 'sección plegada: el título suma sus avisos')
+    p.click('#nav .nav-gh[data-g="Gestión"]'); p.wait_for_timeout(100)
+
+    # ---------- botón principal y F1 ----------
+    chk(p.locator('#sideCta').is_visible(), 'botón «Registrar dispensación» arriba del menú')
+    p.click('#sideCta'); p.wait_for_timeout(300)
+    chk(p.locator('#fDS').count() == 1, 'abre la dispensación'); p.keyboard.press('Escape'); p.wait_for_timeout(150)
+    p.keyboard.press('F1'); p.wait_for_timeout(300)
+    chk(p.locator('#fDS').count() == 1, 'F1 abre la dispensación'); p.keyboard.press('Escape'); p.wait_for_timeout(150)
+    dni = ev("Object.keys(CM.db.pacientes)[0]")
+    ir('#/paciente/' + dni); p.keyboard.press('F1'); p.wait_for_timeout(300)
+    chk(p.locator('#fDS [name=dni]').count() and p.input_value('#fDS [name=dni]') == dni or p.locator('#fDS', has_text=ev("CM.db.pacientes[%s].nombre" % json.dumps(dni)).split(' (')[0]).count() == 1, 'desde la ficha, F1 abre la dispensación de ese paciente')
+    p.keyboard.press('Escape'); p.wait_for_timeout(150)
+    como('operador'); ir('#/inicio')
+    puede = ev("CM.can('dispensaciones','oper')")
+    chk(p.locator('#sideCta').count() == (1 if puede else 0), 'el botón respeta el permiso del rol (operador puede: %s)' % puede)
+    como('admin'); ir('#/auditoria'); ir('#/inicio')
+
+    # ---------- campana ----------
+    av = ev("CM.uxAvisos()"); n = sum(a['n'] for a in av)
+    chk(p.locator('#uxBell .ux-bn').inner_text() == str(n), 'campana con el total de avisos (%d)' % n)
+    chk(not p.locator('#uxAvisos').is_visible(), 'la lista empieza cerrada')
+    p.click('#uxBell'); p.wait_for_timeout(150)
+    chk(p.locator('#uxAvisos').is_visible() and p.locator('#uxAvisos .ux-av').count() == len(av), 'al tocarla muestra los avisos')
+    p.keyboard.press('Escape'); p.wait_for_timeout(100)
+    chk(not p.locator('#uxAvisos').is_visible(), 'Esc la cierra')
+    p.click('#uxBell'); p.click('main h1, main h2 >> nth=0'); p.wait_for_timeout(100)
+    chk(not p.locator('#uxAvisos').is_visible(), 'tocar afuera la cierra')
+
+    # ---------- Configuración dinámica ----------
+    ir('#/ajustes')
+    secs = ev("[...document.querySelectorAll('.cfg-sec')].map(b=>b.dataset.cfgsec)")
+    chk(secs == ['ong', 'disp', 'din', 'sis'], 'índice por secciones: %s' % secs)
+    vis = lambda: ev("[...document.querySelectorAll('.cfg-card')].filter(c=>!c.hidden&&c.offsetParent).map(c=>c.querySelector('.cfg-ht b').textContent)")
+    chk(vis() == ['Datos de la ONG', 'Formularios de Google'], 'La fundación: %s' % vis())
+    alto = ev("document.documentElement.scrollHeight"); chk(alto < 2200, 'pantalla más corta (%d px; antes ~3.300)' % alto)
+    p.click('[data-cfgsec=sis]'); p.wait_for_timeout(150)
+    chk(set(vis()) >= {'Apariencia', 'Módulos activos'}, 'Sistema y apariencia: %s' % vis())
+    p.click('[data-cfgsec=din]'); p.wait_for_timeout(150)
+    chk(set(vis()) == {'Factura C y documento del receptor', 'Rubros financieros'}, 'Donaciones y facturación: %s' % vis())
+    p.fill('#cfgQ', 'tope'); p.wait_for_timeout(200)
+    chk('Reglas de la dispensación' in vis() and p.locator('.cfg-hit').count() >= 1, 'buscar «tope» encuentra la regla y resalta el campo')
+    p.fill('#cfgQ', 'formulario seguimiento'); p.wait_for_timeout(200)
+    chk(vis() == ['Formularios de Google'], 'buscar varias palabras sin tildes')
+    p.fill('#cfgQ', 'zzzz'); p.wait_for_timeout(200)
+    chk(p.locator('.cfg-empty').is_visible(), 'sin resultados: mensaje de ayuda')
+    p.fill('#cfgQ', ''); p.click('main h1'); p.keyboard.press('/'); p.wait_for_timeout(100)
+    chk(ev("document.activeElement.id") == 'cfgQ', 'tecla / va al buscador')
+    p.keyboard.press('Escape')
+    p.click('[data-cfgsec=ong]'); p.wait_for_timeout(150)
+    p.fill('.cfg-card [name=domicilio]', 'Islas Malvinas 137, Salta'); p.wait_for_timeout(150)
+    chk(p.locator('.cfg-card.dirty').count() == 1 and 'sin guardar' in p.inner_text('[data-cfgn=ong]'), 'marca «Sin guardar» en la tarjeta y en el índice')
+    chk(p.locator('.cfg-foot.dirty').is_visible() and 'Datos de la ONG' in p.inner_text('.cfg-foot'), 'barra de Guardar con lo que falta guardar')
+    # validación en otra sección: tope inválido
+    p.click('[data-cfgsec=disp]'); p.wait_for_timeout(100)
+    if not p.locator('.cfg-card.open [name=tope]').count(): p.locator('.cfg-card', has_text='Reglas de la dispensación').locator('.cfg-head').click()
+    p.fill('[name=tope]', '-3'); p.click('[data-cfgsec=ong]'); p.wait_for_timeout(100)
+    p.locator('.cfg-foot button[type=submit]').click(); p.wait_for_timeout(300)
+    chk(ev("document.activeElement && document.activeElement.name") == 'tope' and p.locator('.cfg-sec.on').get_attribute('data-cfgsec') == 'disp', 'si falla una validación en otra sección, la abre y va al campo')
+    p.fill('[name=tope]', ''); p.locator('.cfg-foot button[type=submit]').click(); p.wait_for_timeout(400)
+    chk(ev("CM.db.ong.domicilio") == 'Islas Malvinas 137, Salta', 'Guardar sigue funcionando igual')
+    chk(p.locator('.cfg-card.dirty').count() == 0 and p.locator('.cfg-sec.on').get_attribute('data-cfgsec') == 'disp', 'después de guardar: sin marcas y en la misma sección')
+    p.click('[data-cfgsec=sis]'); p.wait_for_timeout(100)
+    if not p.locator('.cfg-card.open', has_text='Apariencia').count(): p.locator('.cfg-card', has_text='Apariencia').locator('.cfg-head').click(); p.wait_for_timeout(100)
+    p.locator('.cfg-card', has_text='Apariencia').locator('[data-act=tema-set][data-v=oscuro]').click(); p.wait_for_timeout(300)
+    chk(ev("document.documentElement.dataset.tema") == 'oscuro' and p.locator('.cfg-sec.on').get_attribute('data-cfgsec') == 'sis', 'Apariencia funciona dentro de su tarjeta')
+    p.screenshot(path='/tmp/v27_cfg_oscuro.png')
+    p.locator('.cfg-card', has_text='Apariencia').locator('[data-act=tema-set][data-v=claro]').click(); p.wait_for_timeout(200)
+    links = ev("[...document.querySelectorAll('.cfg-link')].map(a=>a.getAttribute('href'))")
+    chk('#/usuarios' in links and '#/perifericos' in links, 'atajos a otros ajustes: %s' % links)
+    p.click('.cfg-link[data-rhtab]') if p.locator('.cfg-link[data-rhtab]').count() else None; p.wait_for_timeout(300)
+    if p.locator('.cfg-link[data-rhtab]').count() == 0 and ev("location.hash") == '#/personal': chk(ev("CM.per.tab") == 'rhcfg', 'el atajo de RR. HH. abre sus ajustes')
+
+    # ---------- celular ----------
+    p.set_viewport_size({'width': 360, 'height': 780})
+    for h in ['#/inicio', '#/ajustes', '#/paciente/' + dni, '#/reprocann']:
+        ir(h); w = ev("document.documentElement.scrollWidth-document.documentElement.clientWidth")
+        chk(w <= 1, '%s sin desborde a 360 px (%d)' % (h, w))
+    chk(p.locator('#sideCta').is_visible() and p.locator('#sideCta').bounding_box()['width'] <= 60, 'en el celular el botón principal es flotante')
+    p.screenshot(path='/tmp/v27_movil.png')
+    p.set_viewport_size({'width': 1366, 'height': 900})
+
+    # ---------- menú público: doble clic en el logo ----------
+    ev("CM.ses && CM.ses.set && 0")
+    p.goto(U + '#/m'); p.wait_for_timeout(500)
+    p.click('.pub-logo'); p.wait_for_timeout(700)
+    chk(ev("location.hash") == '#/m', 'un clic en el logo no hace nada')
+    p.dblclick('.pub-logo'); p.wait_for_timeout(400)
+    chk(ev("location.hash") == '#/acceso', 'doble clic en el logo abre el acceso del equipo')
+    p.goto(U + '#/m'); p.wait_for_timeout(500)
+    sol = ev("(()=>{const l=document.querySelector('.pub-logo').getBoundingClientRect();const n=document.querySelector('.pub-nav');if(!n||!n.offsetParent)return true;const a=n.querySelector('button').getBoundingClientRect();return a.left>=l.right-1})()")
+    chk(sol, 'los enlaces del menú público no quedan debajo del logo')
+    ev("CM.db.menu.pub.oculto.activo=false"); p.goto(U + '#/inicio'); p.goto(U + '#/m'); p.wait_for_timeout(400)
+    p.dblclick('.pub-logo'); p.wait_for_timeout(300)
+    chk(ev("location.hash") == '#/m', 'con el acceso oculto desactivado, el doble clic no hace nada')
+    ev("CM.db.menu.pub.oculto.activo=true")
+    m = b.new_context(viewport={'width': 390, 'height': 800}, has_touch=True, is_mobile=True).new_page()
+    m.route('**/js/config.js*', lambda r: r.fulfill(status=200, content_type='application/javascript', body=CFG))
+    m.goto(U + '#/m'); m.wait_for_timeout(800)
+    m.tap('.pub-logo'); m.wait_for_timeout(120); m.tap('.pub-logo'); m.wait_for_timeout(400)
+    chk(m.evaluate("location.hash") == '#/acceso', 'doble toque en el celular abre el acceso')
+
+    chk(not errs, 'sin errores en la consola: %s' % errs[:3])
+    b.close()
+print('\n%d ok · %d fallas' % (oks[0], len(fallas)))
+if fallas: print('\n'.join(fallas)); raise SystemExit(1)

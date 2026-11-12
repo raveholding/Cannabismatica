@@ -150,6 +150,7 @@
     var av = CM.uxAvisos();
     box.innerHTML = av.map(function (a) { return '<button type="button" class="ux-av ' + a.c + (a.pulso ? ' pulso' : '') + '" data-act="ux-aviso" data-k="' + a.k + '" title="' + esc(a.t) + '"><b>' + a.n + '</b><span>' + esc(a.t) + '</span></button>'; }).join('');
   }
+  CM.uxPintarAvisos = pintarAvisos;
   CM.acts['ux-aviso'] = function (t) { var a = CM.uxAvisos().filter(function (x) { return x.k === t.getAttribute('data-k'); })[0]; if (!a) return; if (a.fn) { CM.per.tab = a.fn; if (g.location.hash === '#/personal') render(); else g.location.hash = '#/personal'; } else if (g.location.hash === a.h) render(); else g.location.hash = a.h; };
   setInterval(function () { try { pintarAvisos(); } catch (e) { /* datos a medio sincronizar */ } }, 20000);
 
