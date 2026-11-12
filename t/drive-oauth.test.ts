@@ -32,6 +32,12 @@ function mundo(o: { rol?: string; sinConexion?: boolean; rtInvalido?: boolean } 
           : R({ access_token: 'a', refresh_token: 'rt-nuevo-123456789012345', scope: 'openid email https://www.googleapis.com/auth/drive.file', id_token: idt });
       }
     }
+    if (u.host === 'sheets.googleapis.com') {
+      assert.strictEqual(H.authorization, 'Bearer at-1'); assert.ok(!init.method || init.method === 'GET', 'sólo lectura');
+      if (!w.hoja || !u.pathname.includes(w.hoja.id)) return R({}, 404);
+      if (u.pathname.endsWith('values:batchGet')) return R({ valueRanges: u.searchParams.getAll('ranges').map((r: string) => ({ range: r, values: w.hoja.datos[r.split('!')[0].replace(/^'|'$/g, '')] || [] })) });
+      return R({ properties: { title: w.hoja.titulo }, sheets: Object.keys(w.hoja.datos).concat(['Legajo']).map((t: string) => ({ properties: { title: t } })) });
+    }
     if (u.host === 'www.googleapis.com') {
       assert.strictEqual(H.authorization, 'Bearer at-1');
       const id = (s: string) => 'G' + String(++w.n).padStart(12, '0');
@@ -181,5 +187,19 @@ await t('vincular: acceso directo en la carpeta del legajo (el original no se mu
   assert.strictEqual(w.files.filter((f: any) => f.mimeType === 'application/vnd.google-apps.shortcut').length, 1);
   assert.strictEqual((await run(mundo({ rol: 'mostrador' }), { accion: 'vincular', items: [it] })).st, 403);
   assert.strictEqual((await run(w, { accion: 'vincular', items: [] })).st, 400);
+});
+await t('formularios: lee sólo las hojas «Respuestas de formulario…» (sólo lectura); permisos; sin acceso → 404', async () => {
+  _limpiarCache(); const w = mundo();
+  w.hoja = { id: 'HOJA00000000001', titulo: 'CANNABISMATICA', datos: { 'Respuestas de formulario 1': [['Marca temporal', 'Nombre y Apellido', 'DNI'], ['12/11/2026 14:54:56', 'Persona Ficticia', '99100001']], 'Respuestas de formulario 2': [['Marca temporal', 'DNI']] } };
+  const a = await run(w, { accion: 'formularios', archivo: 'HOJA00000000001' });
+  assert.strictEqual(a.st, 200, JSON.stringify(a.j));
+  assert.deepStrictEqual(a.j.hojas.map((x: any) => x.titulo), ['Respuestas de formulario 1', 'Respuestas de formulario 2']);
+  assert.strictEqual(a.j.hojas[0].filas[1][1], 'Persona Ficticia');
+  assert.ok(!JSON.stringify(a.j).includes('rt-guardado'));
+  assert.strictEqual((await run(w, { accion: 'formularios', archivo: 'NOEXISTE00001' })).st, 404);
+  assert.strictEqual((await run(w, { accion: 'formularios', archivo: '../x' })).st, 400);
+  const op = mundo({ rol: 'operador' }); op.hoja = w.hoja; assert.strictEqual((await run(op, { accion: 'formularios', archivo: 'HOJA00000000001' })).st, 403);
+  const mo = mundo({ rol: 'mostrador' }); mo.hoja = w.hoja; assert.strictEqual((await run(mo, { accion: 'formularios', archivo: 'HOJA00000000001' })).st, 200);
+  assert.strictEqual((await run(mundo({ sinConexion: true }), { accion: 'formularios', archivo: 'HOJA00000000001' })).st, 503);
 });
 console.log('\n' + ok + ' pruebas correctas' + (malas ? ' · ' + malas + ' FALLAS' : '')); if (malas) process.exit(1);

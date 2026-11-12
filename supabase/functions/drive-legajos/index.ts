@@ -13,6 +13,8 @@
 //   { accion: 'subir', legajo, dni, nombre, mime, tipo, version, hash, b64 } → sube a la carpeta del legajo
 //   { accion: 'picker' }                       → admin: datos públicos para abrir el selector de Google
 //   { accion: 'vincular', items:[{fileId,nombre,legajo,dni}] } → admin: acceso directo al archivo anterior en la carpeta del legajo
+//   { accion: 'formularios', archivo }         → admin/supervisor/mostrador: lee las hojas «Respuestas de formulario…» de la planilla
+//        de respuestas de los Formularios de Google (elegida una vez con el selector). Sólo lectura; nunca escribe en la planilla.
 //   { accion: 'planilla', ciclo, cicloNombre, nombre, version, hash, b64 }  → sube la planilla de cultivo (CSV)
 //        a «Planillas de cultivo · ONG / {ciclo} · {nombre}»; nunca pisa: archivo nuevo por versión, mismo contenido = no repite
 // GET ?code&state (vuelta desde Google): guarda el permiso y vuelve al sistema.
@@ -35,6 +37,8 @@ const RE_LEG = /^L-\d{6}-[2-9A-HJKMNP-Z]{6}$/;
 const RE_ID = /^[A-Za-z0-9_-]{10,120}$/;
 const RE_CICLO = /^CU-[A-Z0-9-]{4,24}$/;
 const MAX_CSV = 5 * 1024 * 1024;
+const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
+const MAX_FILAS = 3000;
 
 class Falla extends Error { status: number; codigo: string; constructor(status: number, codigo: string, msg: string) { super(msg); this.status = status; this.codigo = codigo; } }
 
@@ -220,6 +224,22 @@ export async function manejar(req: Request, d: Deps): Promise<Response> {
       if (!configurado || !con || !con.token) return json({ ok: false, error: 'Google Drive de la ONG sin conectar: un administrador tiene que conectarlo una vez.', codigo: 'sin_conectar' }, 503, h);
       const at0 = await tokenAcceso(d, tenant, con.token);
       return json(await subirPlanilla(d, at0, b, me.tenant.nombre), 200, h);
+    }
+    if (b.accion === 'formularios') {
+      // Formularios de Google del sistema anterior (ingreso y seguimiento): el sistema LEE las respuestas para que nadie quede afuera.
+      if (!['admin', 'supervisor', 'mostrador'].includes(me.rol)) return json({ ok: false, error: 'Sin permiso para leer los formularios.' }, 403, h);
+      if (!configurado || !con || !con.token) return json({ ok: false, error: 'Google Drive de la ONG sin conectar: un administrador tiene que conectarlo una vez.', codigo: 'sin_conectar' }, 503, h);
+      const fid = String(b.archivo || '');
+      if (!RE_ID.test(fid)) return json({ ok: false, error: 'Planilla inválida.' }, 400, h);
+      const at2 = await tokenAcceso(d, tenant, con.token);
+      const meta: any = await g(d, at2, `${SHEETS}/${fid}?fields=${encodeURIComponent('properties.title,sheets.properties.title')}`);
+      if (!meta) return json({ ok: false, error: 'El sistema no tiene acceso a esa planilla: un administrador tiene que elegirla con el selector, con la cuenta conectada.', codigo: 'no_acceso' }, 404, h);
+      const titulos: string[] = ((meta.sheets || []) as any[]).map((x) => String(x && x.properties && x.properties.title || '')).filter((x) => /^(respuestas de formulario|form responses)/i.test(x)).slice(0, 6);
+      if (!titulos.length) return json({ ok: false, error: 'Esa planilla no tiene hojas de respuestas de formulario.', codigo: 'sin_respuestas' }, 422, h);
+      const qs = titulos.map((x) => 'ranges=' + encodeURIComponent("'" + x.replace(/'/g, "''") + "'!A1:Z" + (MAX_FILAS + 1))).join('&');
+      const vr: any = await g(d, at2, `${SHEETS}/${fid}/values:batchGet?${qs}&valueRenderOption=FORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`);
+      const hojas = titulos.map((x, i) => ({ titulo: x, filas: ((vr && vr.valueRanges && vr.valueRanges[i] && vr.valueRanges[i].values) || []).slice(0, MAX_FILAS + 1).map((f: any[]) => (f || []).slice(0, 26).map((c: any) => String(c == null ? '' : c).slice(0, 2000))) }));
+      return json({ ok: true, titulo: limpio(meta.properties && meta.properties.title || '', 120), hojas }, 200, h);
     }
     if (b.accion === 'picker') {
       // datos PÚBLICOS para abrir el selector de Google (Picker) en el navegador: ID de cliente, clave de API del navegador

@@ -22,9 +22,12 @@
     });
   }
   function pendientes() { return (CM.db.legDocs || []).filter(function (d) { return d.estado === 'anterior' && d.legacyId && !d.driveFileId; }); }
+  /* selector de Google reutilizable (p. ej. la planilla de respuestas de los Formularios de Google) */
+  CM.pickerElegir = function (o) { return N._fn('drive-legajos', { accion: 'picker' }).then(function (cfg) { return abrirPicker(cfg, o); }); };
   CM.anterioresPendientes = function () { return pendientes().length; };
 
-  function abrirPicker(cfg) {
+  function abrirPicker(cfg, o) {
+    o = o || {};
     return Promise.all([cargar(GSI), cargar(GAPI)]).then(function () {
       return new Promise(function (ok, mal) { g.gapi.load('picker', { callback: ok, onerror: function () { mal(new Error('No se pudo abrir el selector de Google.')); } }); });
     }).then(function () {
@@ -36,9 +39,10 @@
     }).then(function (tok) {
       return new Promise(function (ok) {
         var P = g.google.picker;
-        var vista = new P.DocsView(P.ViewId.DOCS).setIncludeFolders(true).setSelectFolderEnabled(false).setMode(P.DocsViewMode.LIST);
-        var pk = new P.PickerBuilder().setOAuthToken(tok).setDeveloperKey(cfg.apiKey).setAppId(cfg.appId).addView(vista)
-          .enableFeature(P.Feature.MULTISELECT_ENABLED).setMaxItems(200).setLocale('es').setTitle('Elegí los documentos del sistema anterior')
+        var vista = o.hojas ? new P.DocsView(P.ViewId.SPREADSHEETS).setMode(P.DocsViewMode.LIST) : new P.DocsView(P.ViewId.DOCS).setIncludeFolders(true).setSelectFolderEnabled(false).setMode(P.DocsViewMode.LIST);
+        var pb = new P.PickerBuilder().setOAuthToken(tok).setDeveloperKey(cfg.apiKey).setAppId(cfg.appId).addView(vista);
+        if (!o.uno) pb = pb.enableFeature(P.Feature.MULTISELECT_ENABLED).setMaxItems(200);
+        var pk = pb.setLocale('es').setTitle(o.titulo || 'Elegí los documentos del sistema anterior')
           .setCallback(function (d) {
             if (d[P.Response.ACTION] === P.Action.PICKED) ok((d[P.Response.DOCUMENTS] || []).map(function (x) { return { id: x[P.Document.ID], name: x[P.Document.NAME] }; }));
             else if (d[P.Response.ACTION] === P.Action.CANCEL) ok([]);
