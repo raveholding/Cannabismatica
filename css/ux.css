@@ -211,3 +211,10 @@ form:not(.ds-varios) .ds-row-h{display:none}
 @keyframes ptRing{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}}
 @media (prefers-reduced-motion:reduce){.pt-al,.pt-ic{animation:none}}
 @media (max-width:899px){.pt-box{top:auto;bottom:calc(150px + env(safe-area-inset-bottom));left:12px;right:12px;width:auto}}
+
+/* Instalar el sistema (equipo) · 2026-11-13 */
+.side-inst{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 14px;margin:4px 0;border-radius:12px;border:1px dashed var(--bd2);background:none;color:var(--mu);cursor:pointer;font:inherit;font-weight:500;text-align:left}
+.side-inst:hover{color:var(--ac);border-color:var(--ac)}
+.inst-aviso{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.inst-pasos{margin:0;padding-left:20px;display:grid;gap:6px}
+@media(max-width:899px){.side-inst{display:none}}

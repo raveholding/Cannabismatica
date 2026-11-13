@@ -5,6 +5,12 @@ Adelante está el **menú público** (REPROCANN, talleres, cursos, servicios, cl
 
 Sitio: https://raveholding.github.io/Cannabismatica/
 
+## Novedades (2026-11-13) · Instalar el sistema (sólo equipo)
+- Botón **«Instalar el sistema»** para quienes usan el panel: en el menú lateral, un aviso que se puede cerrar en Inicio y una tarjeta en Configuración → Sistema y apariencia.
+- Queda como app (ícono propio, ventana sin barra del navegador) y abre directo en el ingreso del equipo (`manifest.webmanifest`, íconos 192/512).
+- **No se ofrece a pacientes**: en el menú público no aparece y se bloquea el cartel automático del navegador.
+- Chrome/Edge/Android usan el instalador del navegador; iPhone/iPad muestran los pasos (Compartir → Agregar a inicio). Prueba: `t/e2e_instalar_1113.py`.
+
 ## Novedades (2026-11-12) · Formularios de Google del sistema anterior → sistema
 - Caso real: un paciente completó el «Formulario de Ingreso» de Google (el de AppSheet, que sigue publicado) y no aparecía: esas respuestas van a la planilla de Google de la ONG, que el sistema no leía. Desde el 07/11 había 8 personas en esa situación.
 - **Solicitudes → Formularios de Google:** un administrador elige una vez la planilla de respuestas con el selector de Google (cuenta de la ONG conectada). El servidor la **lee** (nunca escribe) y el sistema, cada 10 minutos mientras alguien del equipo lo tenga abierto o con «Traer respuestas ahora»: crea los pacientes nuevos como **solicitud pendiente de verificar** (legajo único, campana y bandeja), no pisa a quien ya tenía ficha (sólo completa datos vacíos) y agrega los **seguimientos médicos** a la ficha. Idempotente; sólo respuestas desde la fecha elegida (por defecto 01/11/2026).
