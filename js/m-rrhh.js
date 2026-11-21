@@ -73,7 +73,7 @@
     var fs = (CM.db.fichas || []).filter(function (x) { return x.emp === e.id && x.fecha === f; }).sort(function (a, b) { return a.ts.localeCompare(b.ts); });
     var j = jornada(e), lab = j.dias.indexOf(diaSemana(f)) >= 0 && CM.rhCfg().feriados.indexOf(f) < 0 && (!e.ingreso || f >= e.ingreso);
     var trab = CM.minutosDia(e.id, f), ent = fs.filter(function (x) { return x.tipo === 'entrada'; })[0], tarde = 0, ped = pedidosAprob(e, f)[0] || null;
-    var ref = hhmm2min(j.ent); if (ent && ref != null) { var mi = minLocal(ent.ts); if (mi != null && mi > ref + j.tol) tarde = mi - ref; }
+    var ref = hhmm2min(j.ent); if (lab && ent && ref != null) {   /* en un día no laborable no hay tardanza: todo es extra */ var mi = minLocal(ent.ts); if (mi != null && mi > ref + j.tol) tarde = mi - ref; }
     var esp = minEsperados(e), extra = lab && trab > esp + CM.rhCfg().extraMin ? trab - esp : (!lab && trab > 0 ? trab : 0);
     return { fichas: fs, laborable: lab, trab: trab, tarde: tarde, extra: extra, ausente: lab && !!j.ent && !fs.length && !ped && f < CM.hoy(), pedido: ped };   /* sin horario cargado no se cuentan ausencias */
   };

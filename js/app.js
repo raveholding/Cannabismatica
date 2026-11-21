@@ -878,7 +878,8 @@
       if (isNaN(sugD) || sugD < 0) return fail(f, 'sug' + k, pre + 'El aporte sugerido no es un importe válido.');
       var descD = e['desc' + k] && e['desc' + k].value.trim() ? CM.parseMonto(e['desc' + k].value) : 0;
       if (isNaN(descD) || descD < 0) return fail(f, 'desc' + k, pre + 'El descuento no es un importe válido.');
-      items.push({ l: l, cant: cant, sug: sugD, desc: descD });
+      var psel = e['promo' + k] ? e['promo' + k].value : '', pc = CM.calcAporte(sugD, cant, l, psel);
+      items.push({ l: l, cant: cant, sug: sugD, desc: descD, promo: descD > 0 ? (pc.promo && pc.desc === descD ? pc.promo : { id: pc.promo ? pc.promo.id : '', nombre: (pc.promo ? pc.promo.nombre + ' (ajustado a mano)' : 'Descuento manual') }) : null });
     }
     var reglas = CM.reglasDispensar(p);
     if (reglas.bloquea) return fail(f, '', 'No se puede dispensar: ' + reglas.msgs.filter(function (m) { return m.t === 'bad'; }).map(function (m) { return m.m; }).join(' '));
@@ -910,8 +911,8 @@
       if (varios) ap.disps = ids.slice();
       if (mix) ap.pays = mix.pays;
       var conSug = items.filter(function (it) { return it.sug > 0; });
-      if (!varios && conSug.length) { var cc = CM.calcAporte(items[0].sug, items[0].cant); ap.calc = { sug: items[0].sug, cant: items[0].cant, sub: cc.sub, libres: cc.libres, desc: items[0].desc }; }
-      if (varios && conSug.length) ap.calcs = conSug.map(function (it) { var c2 = CM.calcAporte(it.sug, it.cant); return { lote: it.l.id, nombre: it.l.nombre, sug: it.sug, cant: it.cant, sub: c2.sub, libres: c2.libres, desc: it.desc }; });
+      if (!varios && conSug.length) { var cc = CM.calcAporte(items[0].sug, items[0].cant, items[0].l, '-'); ap.calc = { sug: items[0].sug, cant: items[0].cant, sub: cc.sub, libres: items[0].promo && CM.calcAporte(items[0].sug, items[0].cant, items[0].l, items[0].promo.id).desc === items[0].desc ? CM.calcAporte(items[0].sug, items[0].cant, items[0].l, items[0].promo.id).libres : 0, desc: items[0].desc, promo: items[0].promo }; }
+      if (varios && conSug.length) ap.calcs = conSug.map(function (it) { var c2 = CM.calcAporte(it.sug, it.cant, it.l, '-'), c3 = it.promo ? CM.calcAporte(it.sug, it.cant, it.l, it.promo.id) : null; return { lote: it.l.id, nombre: it.l.nombre, sug: it.sug, cant: it.cant, sub: c2.sub, libres: c3 && c3.desc === it.desc ? c3.libres : 0, desc: it.desc, promo: it.promo }; });
       if (cb.cambio > 0) { ap.recibido = cb.recibido; ap.cambio = cb.cambio; ap.cmMedio = cb.cmMedio; }
       CM.db.aportes.push(ap); nuevos.forEach(function (d) { d.aporte = ap.id; });
       CM.audit('Donación voluntaria', ap.id + ' · Legajo ' + CM.legDe(dni) + ' · ' + CM.fmtMoney(aporte) + ' · ' + CM.medioTxt(ap) + (varios ? ' · ' + ids.length + ' productos' : '') + (ap.calc || ap.calcs || ap.cambio ? ' · ' + CM.aporteDetalle(ap) : ''));

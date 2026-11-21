@@ -21,11 +21,18 @@
     return mejor ? mejor.sug : 0;
   };
   CM.sugPorNombre = function (nombre) { return CM.sugLote({ nombre: nombre }); };
-  /* 5+1: cada 5 unidades, 1 sin aporte (grupos de 6). Con decimales cuentan sólo los grupos completos. */
-  CM.calcAporte = function (sug, cant) {
+  /* Promociones (configurables por la administración en js/m-promos.js). Sin m-promos: 5+1 fijo (grupos de 6, 1 sin aporte).
+     calcAporte(sug, cant, lote, sel): sel = '' automática (la que más descuenta, nunca se acumulan), '-' ninguna, o id de promo. */
+  CM.calcAporte = function (sug, cant, lote, sel) {
     sug = sug > 0 ? Math.round(sug) : 0; cant = cant > 0 ? cant : 0;
-    var sub = Math.round(sug * cant), libres = Math.floor(cant / 6 + 1e-9), desc = Math.min(sub, libres * sug);
-    return { sug: sug, cant: cant, sub: sub, libres: libres, desc: desc, total: sub - desc };
+    var sub = Math.round(sug * cant);
+    if (CM.mejorPromo) {
+      var pr = sel === '-' ? null : CM.mejorPromo(sug, cant, lote, sel);
+      var d0 = pr ? Math.min(sub, pr.desc) : 0;
+      return { sug: sug, cant: cant, sub: sub, libres: pr ? pr.libres || 0 : 0, desc: d0, total: sub - d0, promo: pr ? { id: pr.p.id, nombre: pr.p.nombre } : null };
+    }
+    var libres = sel === '-' ? 0 : Math.floor(cant / 6 + 1e-9), desc = Math.min(sub, libres * sug);
+    return { sug: sug, cant: cant, sub: sub, libres: libres, desc: desc, total: sub - desc, promo: libres ? { id: 'PR-5MAS1', nombre: '5+1' } : null };
   };
   function cents(v) { return String(v / 100).replace('.', ','); }
   function unidadTxt(u) { return u === 'g' ? 'gramo' : u === 'frasco' ? 'frasco' : 'unidad'; }
@@ -36,8 +43,9 @@
   CM.aporteFilaHtml = function (k) {
     k = k || '';
     return '<div class="f f3 apc-fila">' + flr('Aporte sugerido por <span data-apc-un>unidad</span>', '<input class="in num" name="sug' + k + '" inputmode="decimal" placeholder="0" data-apc-in>') +
-      flr('Descuento 5+1 <small class="hint">(cada 5, 1 sin aporte)</small>', '<input class="in num" name="desc' + k + '" inputmode="decimal" placeholder="0" data-apc-in>') +
-      '<div class="fl"><span>Subtotal</span><output class="in ro" data-apc-sub aria-live="polite">$ 0,00</output></div></div><p class="hint" data-apc-rmsg aria-live="polite" style="margin:-2px 0 0"></p>';
+      flr('Descuento por promoción', '<input class="in num" name="desc' + k + '" inputmode="decimal" placeholder="0" data-apc-in>') +
+      '<div class="fl"><span>Subtotal</span><output class="in ro" data-apc-sub aria-live="polite">$ 0,00</output></div></div>' +
+      (CM.mejorPromo ? flr('Promoción', '<select class="in" name="promo' + k + '" data-apc-promo><option value="">Automática (la que más conviene)</option><option value="-">Sin promoción</option></select>') : '') + '<p class="hint" data-apc-rmsg aria-live="polite" style="margin:-2px 0 0"></p>';
   };
   CM.aporteCalcHtml = function () {
     return '<div class="apc" data-apc>' + fl('Total de la donación (se genera solo, se puede cambiar)', '<input class="in num" name="aporte" inputmode="decimal" placeholder="0" data-apc-in style="font-weight:700;font-size:20px">') +
@@ -65,15 +73,17 @@
       var un = row.querySelector('[data-apc-un]'); if (un) un.textContent = l ? unidadTxt(l.unidad) : 'unidad';
       if (origen === 'lote' && kOrig === k) { var s0 = CM.sugLote(l); setVal(f, 'sug' + k, s0 || NaN); if (!s0 && e['sug' + k]) e['sug' + k].value = ''; delete st.descMan[k]; }
       if (origen === 'desc' && kOrig === k) st.descMan[k] = true;
+      if (origen === 'promo' && kOrig === k) delete st.descMan[k];
       var sug = num(f, 'sug' + k), cant = CM.parseCant(e['cant' + k] ? e['cant' + k].value : '');
       if (isNaN(sug)) sug = 0; if (isNaN(cant)) cant = 0;
-      var c = CM.calcAporte(sug, cant);
+      var ps = e['promo' + k], c = CM.calcAporte(sug, cant, l, ps ? ps.value : '');
+      if (ps && CM.promoOpciones) CM.promoOpciones(ps, sug, cant, l);
       row.querySelector('[data-apc-sub]').textContent = money(c.sub);
       if (!st.descMan[k]) setVal(f, 'desc' + k, c.sub > 0 ? c.desc : NaN);
       var desc = num(f, 'desc' + k); if (isNaN(desc)) desc = 0;
       if (c.sub > 0) { hay = true; total += Math.max(0, c.sub - desc); }
       var rm = row.querySelector('[data-apc-rmsg]'), t = [];
-      if (c.libres > 0 && sug > 0) { var lt = c.libres + ' ' + (l ? unidadTxt(l.unidad) : 'unidad') + (c.libres > 1 ? 's' : '') + ' sin aporte (' + money(c.libres * sug) + ')'; t.push('5+1: ' + lt + '.'); libresTxt.push(lt); }
+      if (c.promo && c.desc > 0 && sug > 0) { var lt = c.promo.nombre + ': ' + (c.libres > 0 ? c.libres + ' ' + (l ? unidadTxt(l.unidad) : 'unidad') + (c.libres > 1 ? 's' : '') + ' sin aporte ' : '') + '(− ' + money(c.desc) + ')'; t.push('Promoción ' + lt + '.'); libresTxt.push(lt); }
       if (!sug && l) { t.push('Este lote no tiene aporte sugerido: se carga en Trazabilidad / Stock → «Aporte sugerido».'); sinSug.push(l.nombre); }
       if (rm) rm.innerHTML = t.join(' ');
     });
@@ -82,7 +92,7 @@
     if (msg) {
       var t2 = [], n = CM.dsFilas(f).length;
       if (n > 1 && hay) t2.push('Sugerido por ' + n + ' productos: ' + money(total) + '.');
-      if (libresTxt.length) t2.push('5+1: ' + libresTxt.join(' · ') + '.');
+      if (libresTxt.length) t2.push('Promociones: ' + libresTxt.join(' · ') + '.');
       if (hay && !isNaN(tot) && tot !== total) t2.push('El total difiere del sugerido (' + money(total) + '): la donación es voluntaria. <button type="button" class="btn sm" data-act="apc-reset">Volver al sugerido</button>');
       msg.innerHTML = t2.join(' ');
     }
@@ -135,8 +145,9 @@
   });
   document.addEventListener('change', function (ev) {
     var t = ev.target, f = t && t.form; if (!f) return;
-    var ml = /^lote(_\d+)?$/.exec(t.name || '');
+    var ml = /^lote(_\d+)?$/.exec(t.name || ''), mp = /^promo(_\d+)?$/.exec(t.name || '');
     if (ml && f.querySelector('[data-apc]')) CM.apcRecalc(f, 'lote', ml[1] || '');
+    if (mp && f.querySelector('[data-apc]')) CM.apcRecalc(f, 'promo', mp[1] || '');
     if (t.name === 'medio' && f.querySelector('[data-cambio]')) CM.cambioRecalc(f);
   });
 
@@ -144,8 +155,9 @@
   CM.aporteDetalle = function (a) {
     if (!a) return '';
     var t = [];
-    if (a.calc && a.calc.sug) t.push('Sugerido ' + money(a.calc.sug) + ' × ' + CM.fmtNum(a.calc.cant) + ' = ' + money(a.calc.sub) + (a.calc.desc ? ' − 5+1 ' + money(a.calc.desc) : ''));
-    (a.calcs || []).forEach(function (c) { t.push((c.nombre ? c.nombre + ': ' : '') + money(c.sug) + ' × ' + CM.fmtNum(c.cant) + ' = ' + money(c.sub) + (c.desc ? ' − 5+1 ' + money(c.desc) : '')); });
+    function pn(c) { return c.promo && c.promo.nombre ? c.promo.nombre : c.libres ? '5+1' : 'descuento'; }
+    if (a.calc && a.calc.sug) t.push('Sugerido ' + money(a.calc.sug) + ' × ' + CM.fmtNum(a.calc.cant) + ' = ' + money(a.calc.sub) + (a.calc.desc ? ' − ' + pn(a.calc) + ' ' + money(a.calc.desc) : ''));
+    (a.calcs || []).forEach(function (c) { t.push((c.nombre ? c.nombre + ': ' : '') + money(c.sug) + ' × ' + CM.fmtNum(c.cant) + ' = ' + money(c.sub) + (c.desc ? ' − ' + pn(c) + ' ' + money(c.desc) : '')); });
     if (a.cambio > 0) t.push('Recibido ' + money(a.recibido) + (a.cmMedio && a.cmMedio !== 'efectivo' ? ' por ' + (CM.MEDIOS[a.cmMedio] || a.cmMedio).toLowerCase() : ' en efectivo') + ' · cambio ' + money(a.cambio) + ' en efectivo');
     return t.join(' · ');
   };
@@ -161,7 +173,7 @@
         fl('Lote *', '<select class="in" name="lote" data-ls-lote><option value="">Elegí un lote…</option>' + ls.map(function (l) { var s = CM.sugLote(l); return U.opt(l.id, l.nombre + ' · ' + l.id + ' · ' + (s ? money(s) + ' por ' + unidadTxt(l.unidad) : 'sin sugerido'), l.id === sel); }).join('') + '</select>') +
         '<div class="f f2">' + fl('Aporte sugerido por unidad (en pesos) *', '<input class="in num" name="sug" inputmode="decimal" placeholder="0">') + fl('Motivo del cambio', '<input class="in" name="motivo" maxlength="120" placeholder="Ej.: actualización mensual">') + '</div>' +
         '<label class="chk"><input type="checkbox" name="todos" checked><span>Aplicar a todos los lotes con el mismo nombre / genética</span></label>' +
-        '<p class="hint" style="margin:0">Es una sugerencia para el operador: en cada dispensación se puede cambiar. El 5+1 se calcula solo (cada 5, 1 sin aporte). Cada cambio queda en la auditoría.</p><p class="err" role="alert" data-err></p></form>',
+        '<p class="hint" style="margin:0">Es una sugerencia para el operador: en cada dispensación se puede cambiar. Las promociones (por ejemplo 5+1) se aplican solas al dispensar y se configuran en Dispensaciones → «Promociones». Cada cambio queda en la auditoría.</p><p class="err" role="alert" data-err></p></form>',
       footer: '<button class="btn" type="button" data-act="modal-close">Cancelar</button><button class="btn pri" type="submit" form="fLS">Guardar</button>'
     });
     var f = document.getElementById('fLS'); if (f && sel) { var l0 = CM.lote(sel), s0 = CM.sugLote(l0); if (s0) f.elements.sug.value = cents(s0); }

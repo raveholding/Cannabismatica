@@ -105,8 +105,8 @@ with sync_playwright() as pw:
       const d=CM.addDays(CM.hoy(),-7);const wd=new Date(d+'T12:00:00Z').getUTCDay();
       const ts=(h)=>new Date(d+'T'+h+':00-03:00').toISOString();
       CM.db.fichas.push({id:'FI-T1',emp:e.id,fecha:d,ts:ts('09:25'),tipo:'entrada',metodo:'test'},{id:'FI-T2',emp:e.id,fecha:d,ts:ts('19:30'),tipo:'salida',metodo:'test'});
-      const r=CM.rhDia(e,d);return [wd,r.tarde,r.extra,r.trab];})()""" % json.dumps(e1))
-    if res[0] in (1, 2, 3, 4, 5):
+      const r=CM.rhDia(e,d);return [r.laborable,r.tarde,r.extra,r.trab,wd];})()""" % json.dumps(e1))
+    if res[0]:
         chk(res[1] == 25 and res[2] == 10 * 60 + 5 - 480 and res[3] == 605, 'tardanza de 25 min (tolerancia 10) y horas extra sobre 8 h: %s' % res)
     else:
         chk(res[1] == 0 and res[2] == res[3], 'en un día no laborable todo cuenta como extra y no hay tardanza: %s' % res)
